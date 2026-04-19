@@ -1,0 +1,2631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STAYO — The Memory Layer for Premium Hospitality</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy: #0B1F3A;
+    --navy-mid: #0f2847;
+    --navy-light: #162f52;
+    --emerald: #0C3B2E;
+    --gold: #C9A96E;
+    --gold-light: #E8CFA0;
+    --cream: #F5F0E8;
+    --white: #FAFAF8;
+    --text-dim: rgba(245,240,232,0.5);
+    --text-mid: rgba(245,240,232,0.75);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--navy);
+    color: var(--cream);
+    overflow-x: hidden;
+   
+  }
+
+  /* CUSTOM CURSOR — simple gold dot, CSS only, no rAF */
+  * { cursor: none !important; }
+  #custom-cursor {
+    width: 10px; height: 10px;
+    background: var(--gold);
+    border-radius: 50%;
+    position: fixed;
+    top: -5px; left: -5px;
+    pointer-events: none;
+    z-index: 9999;
+    will-change: transform;
+    transition: width 0.2s ease, height 0.2s ease, background 0.2s ease, top 0.2s ease, left 0.2s ease;
+  }
+  #custom-cursor.hover {
+    width: 24px; height: 24px;
+    top: -12px; left: -12px;
+    background: rgba(201,169,110,0.25);
+    border: 1px solid rgba(201,169,110,0.5);
+  }
+  @media (hover: none) { #custom-cursor { display: none; } * { cursor: auto !important; } }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 1000;
+    padding: 24px 60px;
+    display: flex; align-items: center; justify-content: space-between;
+    transition: background 0.5s, padding 0.5s;
+  }
+  nav.scrolled {
+    background: rgba(11,31,58,0.92);
+    
+    padding: 16px 60px;
+    border-bottom: 1px solid rgba(201,169,110,0.1);
+  }
+  .nav-logo {
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+  }
+  .nav-logo svg { height: 28px; width: auto; }
+  .nav-links {
+    display: flex; gap: 40px; list-style: none;
+  }
+  .nav-links a {
+    font-size: 13px; font-weight: 300; letter-spacing: 0.1em;
+    color: var(--text-mid); text-decoration: none;
+    text-transform: uppercase; transition: color 0.3s;
+  }
+  .nav-links a:hover { color: var(--gold); }
+  .nav-cta {
+    border: 1px solid var(--gold);
+    color: var(--gold) !important;
+    padding: 10px 24px;
+    border-radius: 2px;
+    transition: background 0.3s !important;
+  }
+  .nav-cta:hover { background: var(--gold) !important; color: var(--navy) !important; }
+
+  /* NOISE OVERLAY */
+  /* noise overlay removed for performance */
+
+  /* HERO */
+  #hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    padding: 120px 40px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-bg {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 50% 40%, rgba(12,59,46,0.25) 0%, transparent 70%),
+                radial-gradient(ellipse 40% 40% at 80% 20%, rgba(201,169,110,0.06) 0%, transparent 60%);
+  }
+  .hero-lines {
+    position: absolute; inset: 0;
+    overflow: hidden; pointer-events: none;
+  }
+  .hero-line {
+    position: absolute;
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, rgba(201,169,110,0.12), transparent);
+    animation: lineFloat 8s ease-in-out infinite;
+    will-change: transform, opacity;
+  }
+  @keyframes lineFloat {
+    0%,100% { transform: translateY(-8px); opacity: 0.25; }
+    50% { transform: translateY(8px); opacity: 0.6; }
+  }
+  .hero-eyebrow {
+    font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase;
+    color: var(--gold); font-weight: 400; margin-bottom: 32px;
+    opacity: 0; transform: translateY(20px);
+    animation: fadeUp 1s ease forwards 0.3s;
+  }
+  .hero-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(52px, 8vw, 110px);
+    font-weight: 300;
+    line-height: 1.0;
+    letter-spacing: -0.01em;
+    color: var(--cream);
+    margin-bottom: 28px;
+    opacity: 0; transform: translateY(30px);
+    animation: fadeUp 1s ease forwards 0.5s;
+  }
+  .hero-title em { font-style: italic; color: var(--gold-light); }
+  .hero-sub {
+    font-size: clamp(15px, 2vw, 18px);
+    font-weight: 300;
+    line-height: 1.7;
+    color: var(--text-mid);
+    max-width: 560px;
+    margin-bottom: 52px;
+    opacity: 0; transform: translateY(20px);
+    animation: fadeUp 1s ease forwards 0.7s;
+  }
+  .hero-btns {
+    display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;
+    opacity: 0; transform: translateY(20px);
+    animation: fadeUp 1s ease forwards 0.9s;
+  }
+  .btn-primary {
+    background: var(--gold); color: var(--navy);
+    padding: 16px 40px; border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 500; letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: background 0.3s, transform 0.2s;
+    display: inline-block;
+  }
+  .btn-primary:hover { background: var(--gold-light); transform: translateY(-2px); }
+  .btn-ghost {
+    background: transparent; color: var(--cream);
+    padding: 16px 40px;
+    border: 1px solid rgba(245,240,232,0.25);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 400; letter-spacing: 0.1em;
+    text-transform: uppercase; text-decoration: none;
+    display: inline-block;
+    transition: border-color 0.3s, color 0.3s, transform 0.2s;
+  }
+  .btn-ghost:hover { border-color: var(--gold); color: var(--gold); transform: translateY(-2px); }
+
+  /* HERO VISUAL */
+  .hero-visual {
+    margin-top: 80px;
+    opacity: 0; transform: translateY(30px);
+    animation: fadeUp 1.2s ease forwards 1.1s;
+    position: relative;
+    width: 100%; max-width: 800px;
+  }
+  .profile-flow {
+    display: flex; align-items: center; justify-content: center; gap: 0;
+    position: relative;
+  }
+  .hotel-node {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(201,169,110,0.2);
+    border-radius: 12px;
+    padding: 20px 24px;
+    min-width: 160px;
+    text-align: center;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+  .hotel-node:hover { border-color: var(--gold); transform: translateY(-4px); }
+  .hotel-icon { font-size: 28px; margin-bottom: 8px; }
+  .hotel-name { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-mid); }
+  .flow-connector {
+    flex: 1; max-width: 120px;
+    height: 1px;
+    background: linear-gradient(to right, rgba(201,169,110,0.2), rgba(201,169,110,0.5), rgba(201,169,110,0.2));
+  }
+  .center-profile {
+    background: linear-gradient(135deg, rgba(12,59,46,0.6), rgba(11,31,58,0.8));
+    border: 1px solid rgba(201,169,110,0.4);
+    border-radius: 16px;
+    padding: 28px 32px;
+    min-width: 200px;
+    position: relative;
+    z-index: 2;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+  }
+  .profile-avatar {
+    width: 52px; height: 52px;
+    background: linear-gradient(135deg, var(--gold), var(--emerald));
+    border-radius: 50%;
+    margin: 0 auto 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px; color: var(--cream);
+    font-style: italic;
+  }
+  .profile-label {
+    font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 4px;
+  }
+  .profile-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px; font-weight: 400; color: var(--cream);
+    margin-bottom: 12px;
+  }
+  .profile-tags {
+    display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+  }
+  .profile-tag {
+    font-size: 10px; letter-spacing: 0.06em;
+    background: rgba(201,169,110,0.12);
+    border: 1px solid rgba(201,169,110,0.2);
+    color: var(--gold-light);
+    padding: 4px 10px; border-radius: 100px;
+  }
+  /* Scroll indicator removed from hero - replaced by memory thread */
+
+  /* SECTIONS */
+  section {
+    padding: 120px 60px;
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+    contain: layout style;
+  }
+  .full-width {
+    max-width: 100%;
+    padding-left: 0; padding-right: 0;
+  }
+
+  /* REVEAL ANIMATION */
+  .reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .reveal-delay-1 { transition-delay: 0.15s; }
+  .reveal-delay-2 { transition-delay: 0.3s; }
+  .reveal-delay-3 { transition-delay: 0.45s; }
+  .reveal-delay-4 { transition-delay: 0.6s; }
+
+  /* SECTION LABEL */
+  .section-label {
+    font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase;
+    color: var(--gold); font-weight: 400; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .section-label::before {
+    content: '';
+    display: block; width: 40px; height: 1px;
+    background: var(--gold);
+  }
+  .section-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(36px, 5vw, 64px);
+    font-weight: 300; line-height: 1.1;
+    color: var(--cream); margin-bottom: 24px;
+  }
+  .section-title em { font-style: italic; color: var(--gold-light); }
+  .section-body {
+    font-size: 17px; font-weight: 300; line-height: 1.8;
+    color: var(--text-mid); max-width: 560px;
+  }
+
+  /* DIVIDER */
+  .divider {
+    width: 100%; height: 1px;
+    background: linear-gradient(to right, transparent, rgba(201,169,110,0.2), transparent);
+    margin: 0;
+  }
+
+  /* PROBLEM SECTION */
+  #problem {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: center;
+  }
+  .problem-list {
+    display: flex; flex-direction: column; gap: 24px;
+    margin-top: 40px;
+  }
+  .problem-item {
+    display: flex; gap: 20px; align-items: flex-start;
+    padding: 24px; border-left: 1px solid rgba(201,169,110,0.2);
+    transition: border-color 0.3s, background 0.3s;
+  }
+  .problem-item:hover {
+    border-color: var(--gold);
+    background: rgba(201,169,110,0.03);
+  }
+  .problem-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 40px; font-weight: 300; color: rgba(201,169,110,0.3);
+    line-height: 1; flex-shrink: 0;
+  }
+  .problem-text h4 {
+    font-size: 15px; font-weight: 500; color: var(--cream);
+    margin-bottom: 6px;
+  }
+  .problem-text p {
+    font-size: 14px; font-weight: 300; color: var(--text-dim); line-height: 1.6;
+  }
+  .problem-visual {
+    position: relative;
+  }
+  .broken-flow {
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .stay-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px;
+    padding: 18px 22px;
+    display: flex; align-items: center; gap: 16px;
+    position: relative; overflow: hidden;
+  }
+  .stay-card::after {
+    content: 'Memory Lost';
+    position: absolute; right: 16px;
+    font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: rgba(255,80,80,0.5);
+  }
+  .stay-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(255,255,255,0.15); flex-shrink: 0;
+  }
+  .stay-info { flex: 1; }
+  .stay-hotel { font-size: 13px; color: var(--text-mid); margin-bottom: 4px; }
+  .stay-pref {
+    font-size: 11px; color: rgba(245,240,232,0.3);
+    text-decoration: line-through;
+  }
+  .break-arrow {
+    text-align: center; color: rgba(255,255,255,0.1); font-size: 18px;
+    padding: 4px 0;
+  }
+
+  /* SOLUTION SECTION */
+  #solution {
+    text-align: center;
+    background: linear-gradient(180deg, transparent, rgba(12,59,46,0.12), transparent);
+  }
+  .solution-inner { max-width: 700px; margin: 0 auto; }
+  .solution-diagram {
+    margin-top: 60px;
+    display: grid; grid-template-columns: 1fr auto 1fr;
+    gap: 0; align-items: center;
+    max-width: 800px; margin: 60px auto 0;
+  }
+  .sol-side {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(201,169,110,0.15);
+    border-radius: 12px;
+    padding: 28px;
+    text-align: center;
+  }
+  .sol-side h4 {
+    font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 16px;
+  }
+  .sol-side ul { list-style: none; }
+  .sol-side ul li {
+    font-size: 13px; font-weight: 300; color: var(--text-mid);
+    padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .sol-side ul li:last-child { border-bottom: none; }
+  .sol-center-wrapper {
+    padding: 0 24px; display: flex; align-items: center;
+  }
+  .sol-center {
+    background: linear-gradient(135deg, rgba(12,59,46,0.7), rgba(11,31,58,0.9));
+    border: 1px solid rgba(201,169,110,0.4);
+    border-radius: 16px;
+    padding: 32px 28px;
+    text-align: center;
+    box-shadow: 0 0 60px rgba(12,59,46,0.3);
+    min-width: 180px;
+  }
+  .sol-center-icon {
+    font-size: 36px; margin-bottom: 12px;
+  }
+  .sol-center h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 26px; font-weight: 300;
+    color: var(--cream); margin-bottom: 8px;
+  }
+  .sol-center p {
+    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--gold);
+  }
+
+  /* HOW IT WORKS */
+  #how {
+    padding: 120px 60px;
+    max-width: 1200px; margin: 0 auto;
+  }
+  .steps-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 2px; margin-top: 60px;
+  }
+  .step-card {
+    padding: 48px 36px;
+    border: 1px solid rgba(201,169,110,0.1);
+    position: relative; overflow: hidden;
+    transition: border-color 0.4s, background 0.4s;
+  }
+  .step-card:hover {
+    border-color: rgba(201,169,110,0.4);
+    background: rgba(201,169,110,0.03);
+  }
+  .step-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 2px;
+    background: linear-gradient(to right, transparent, var(--gold), transparent);
+    opacity: 0; transition: opacity 0.4s;
+  }
+  .step-card:hover::before { opacity: 1; }
+  .step-number {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 80px; font-weight: 300;
+    color: rgba(201,169,110,0.1); line-height: 1;
+    margin-bottom: 24px;
+    display: block;
+  }
+  .step-icon { font-size: 32px; margin-bottom: 16px; display: block; }
+  .step-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 26px; font-weight: 400; color: var(--cream);
+    margin-bottom: 16px;
+  }
+  .step-desc {
+    font-size: 14px; font-weight: 300; color: var(--text-dim); line-height: 1.7;
+  }
+
+  /* FEATURES */
+  #features {
+    padding: 120px 60px;
+    max-width: 1200px; margin: 0 auto;
+  }
+  .features-header {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 60px; align-items: end; margin-bottom: 60px;
+  }
+  .features-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: rgba(201,169,110,0.08);
+    border: 1px solid rgba(201,169,110,0.08);
+  }
+  .feature-card {
+    background: var(--navy);
+    padding: 36px 32px;
+    position: relative; overflow: hidden;
+    transition: background 0.4s;
+   
+  }
+  .feature-card:hover { background: rgba(12,59,46,0.3); }
+  .feature-card::after {
+    content: attr(data-detail);
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(12,59,46,0.95), rgba(11,31,58,0.95));
+    padding: 32px;
+    font-size: 13px; font-weight: 300; color: var(--text-mid); line-height: 1.7;
+    opacity: 0; transition: opacity 0.4s;
+    display: flex; align-items: center;
+  }
+  .feature-card:hover::after { opacity: 1; }
+  .feature-icon { font-size: 28px; margin-bottom: 16px; display: block; }
+  .feature-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px; font-weight: 400; color: var(--cream);
+    margin-bottom: 10px;
+  }
+  .feature-sub {
+    font-size: 12px; font-weight: 300; color: var(--text-dim); line-height: 1.6;
+  }
+
+  /* METRICS */
+  #benefits {
+    padding: 100px 60px;
+    background: linear-gradient(180deg, transparent, rgba(201,169,110,0.04), transparent);
+  }
+  .metrics-inner { max-width: 1200px; margin: 0 auto; }
+  .metrics-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 0; margin-top: 60px;
+    border: 1px solid rgba(201,169,110,0.12);
+  }
+  .metric-card {
+    padding: 48px 36px;
+    border-right: 1px solid rgba(201,169,110,0.12);
+    text-align: center;
+    transition: background 0.3s;
+  }
+  .metric-card:last-child { border-right: none; }
+  .metric-card:hover { background: rgba(201,169,110,0.04); }
+  .metric-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 64px; font-weight: 300;
+    color: var(--gold); line-height: 1;
+    margin-bottom: 12px;
+  }
+  .metric-label {
+    font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--text-mid);
+  }
+  .metric-source {
+    font-size: 10px; color: var(--text-dim); margin-top: 8px;
+  }
+
+  /* GUEST BENEFITS */
+  #guests {
+    padding: 120px 60px;
+    max-width: 1200px; margin: 0 auto;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 80px; align-items: center;
+  }
+  .guest-list {
+    display: flex; flex-direction: column; gap: 0; margin-top: 40px;
+  }
+  .guest-item {
+    display: flex; gap: 24px; align-items: flex-start;
+    padding: 28px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    transition: padding-left 0.3s;
+  }
+  .guest-item:hover { padding-left: 12px; }
+  .guest-item:first-child { border-top: 1px solid rgba(255,255,255,0.06); }
+  .guest-icon {
+    font-size: 22px; flex-shrink: 0;
+    width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(201,169,110,0.08);
+    border-radius: 8px;
+  }
+  .guest-item h4 { font-size: 15px; font-weight: 500; color: var(--cream); margin-bottom: 6px; }
+  .guest-item p { font-size: 13px; font-weight: 300; color: var(--text-dim); line-height: 1.6; }
+
+  /* DASHBOARD PREVIEW */
+  #product-preview {
+    padding: 120px 60px;
+    max-width: 1200px; margin: 0 auto;
+    text-align: center;
+  }
+  .dashboard-mock {
+    margin-top: 60px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(201,169,110,0.15);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+  }
+  .dash-topbar {
+    background: rgba(11,31,58,0.9);
+    padding: 12px 24px;
+    display: flex; align-items: center; gap: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .dash-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+  }
+  .dash-title {
+    font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--text-dim); margin-left: 12px;
+  }
+  .dash-body {
+    display: grid; grid-template-columns: 240px 1fr;
+    min-height: 480px;
+  }
+  .dash-sidebar {
+    background: rgba(11,31,58,0.6);
+    padding: 24px 16px;
+    border-right: 1px solid rgba(255,255,255,0.06);
+  }
+  .dash-sidebar-label {
+    font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--text-dim); padding: 0 8px; margin-bottom: 12px;
+  }
+  .dash-nav-item {
+    padding: 10px 12px;
+    font-size: 13px; color: var(--text-mid);
+    border-radius: 6px; margin-bottom: 4px;
+    transition: background 0.2s, color 0.2s;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .dash-nav-item:hover { background: rgba(201,169,110,0.08); color: var(--cream); }
+  .dash-nav-item.active {
+    background: rgba(201,169,110,0.1); color: var(--gold);
+  }
+  .dash-main { padding: 28px 32px; }
+  .dash-guest-header {
+    display: flex; align-items: center; gap: 20px; margin-bottom: 28px;
+    padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .dash-avatar {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), var(--emerald));
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cormorant Garamond', serif; font-size: 24px;
+    color: var(--cream); font-style: italic;
+  }
+  .dash-guest-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 26px; font-weight: 300; color: var(--cream);
+  }
+  .dash-guest-meta {
+    font-size: 12px; color: var(--text-dim); margin-top: 2px;
+  }
+  .dash-badge {
+    margin-left: auto;
+    background: rgba(12,59,46,0.6); border: 1px solid rgba(201,169,110,0.3);
+    color: var(--gold); font-size: 11px; letter-spacing: 0.1em;
+    padding: 6px 14px; border-radius: 100px;
+  }
+  .dash-sections {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  }
+  .dash-card {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px; padding: 18px;
+  }
+  .dash-card-title {
+    font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 14px;
+  }
+  .pref-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .pref-row:last-child { border-bottom: none; }
+  .pref-key { font-size: 12px; color: var(--text-dim); flex: 1; }
+  .pref-val { font-size: 12px; color: var(--cream); text-align: right; }
+  .dept-chip {
+    display: inline-block; font-size: 10px; letter-spacing: 0.06em;
+    padding: 4px 10px; border-radius: 4px; margin: 3px 3px 3px 0;
+  }
+
+  /* TRUST SECTION */
+  #trust {
+    padding: 80px 60px;
+    max-width: 1200px; margin: 0 auto;
+  }
+  .trust-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1px; background: rgba(201,169,110,0.08);
+    border: 1px solid rgba(201,169,110,0.08);
+    margin-top: 60px;
+  }
+  .trust-card {
+    background: var(--navy); padding: 44px 36px;
+    transition: background 0.3s;
+  }
+  .trust-card:hover { background: rgba(12,59,46,0.25); }
+  .trust-stat {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 52px; font-weight: 300; color: var(--gold-light);
+    line-height: 1; margin-bottom: 12px;
+  }
+  .trust-text { font-size: 14px; font-weight: 300; color: var(--text-dim); line-height: 1.6; }
+
+  /* TEAM */
+  #team {
+    padding: 120px 60px;
+    max-width: 1200px; margin: 0 auto;
+    text-align: center;
+  }
+  .team-single {
+    margin-top: 60px;
+    max-width: 480px; margin: 60px auto 0;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .team-avatar {
+    width: 120px; height: 120px; border-radius: 50%;
+    border: 1px solid rgba(201,169,110,0.3);
+    background: linear-gradient(135deg, rgba(12,59,46,0.8), rgba(11,31,58,0.9));
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 44px; color: var(--gold-light); font-style: italic;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .team-avatar img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 50%;
+  }
+  .team-avatar::after {
+    content: '';
+    position: absolute; inset: -6px;
+    border-radius: 50%;
+    border: 1px solid rgba(201,169,110,0.15);
+  }
+  .team-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 32px; font-weight: 300; color: var(--cream);
+    margin-bottom: 6px;
+  }
+  .team-role {
+    font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 20px;
+  }
+  .team-bio {
+    font-size: 15px; font-weight: 300; color: var(--text-mid);
+    line-height: 1.7; text-align: center;
+  }
+  .team-tags {
+    display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+    margin-top: 20px;
+  }
+  .team-tag {
+    font-size: 11px; letter-spacing: 0.06em;
+    background: rgba(201,169,110,0.08);
+    border: 1px solid rgba(201,169,110,0.2);
+    color: var(--gold-light); padding: 6px 14px; border-radius: 100px;
+  }
+
+  /* PRIVACY */
+  #privacy {
+    padding: 120px 60px;
+    max-width: 1200px; margin: 0 auto;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 80px; align-items: center;
+  }
+  .privacy-pillars {
+    display: flex; flex-direction: column; gap: 24px; margin-top: 40px;
+  }
+  .privacy-pillar {
+    display: flex; gap: 20px; align-items: flex-start;
+  }
+  .pillar-icon {
+    width: 44px; height: 44px; flex-shrink: 0;
+    border: 1px solid rgba(201,169,110,0.2);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    transition: border-color 0.3s, background 0.3s;
+  }
+  .privacy-pillar:hover .pillar-icon {
+    border-color: var(--gold); background: rgba(201,169,110,0.08);
+  }
+  .pillar-text h4 { font-size: 15px; font-weight: 500; color: var(--cream); margin-bottom: 4px; }
+  .pillar-text p { font-size: 13px; font-weight: 300; color: var(--text-dim); line-height: 1.6; }
+  .privacy-visual {
+    position: relative;
+  }
+  .permission-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(201,169,110,0.15);
+    border-radius: 12px; padding: 28px;
+    backdrop-filter: blur(10px);
+  }
+  .permission-title {
+    font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 20px;
+  }
+  .perm-row {
+    display: flex; align-items: center; gap: 16px;
+    padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .perm-row:last-child { border-bottom: none; }
+  .perm-label { flex: 1; font-size: 13px; color: var(--text-mid); }
+  .toggle {
+    width: 40px; height: 22px; border-radius: 11px;
+    background: rgba(201,169,110,0.2); position: relative;
+    transition: background 0.3s;
+  }
+  .toggle.on { background: rgba(12,59,46,0.8); border: 1px solid var(--gold); }
+  .toggle::after {
+    content: '';
+    position: absolute; top: 3px; left: 3px;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: rgba(245,240,232,0.4);
+    transition: left 0.3s, background 0.3s;
+  }
+  .toggle.on::after { left: 19px; background: var(--gold); }
+
+  /* CTA */
+  #cta {
+    padding: 160px 60px;
+    max-width: 900px; margin: 0 auto;
+    text-align: center;
+  }
+  .cta-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(48px, 7vw, 90px);
+    font-weight: 300; line-height: 1.05;
+    color: var(--cream); margin-bottom: 28px;
+  }
+  .cta-title em { font-style: italic; color: var(--gold-light); }
+  .cta-sub {
+    font-size: 17px; font-weight: 300; color: var(--text-mid);
+    line-height: 1.7; max-width: 480px; margin: 0 auto 48px;
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid rgba(201,169,110,0.1);
+    padding: 60px;
+    max-width: 1200px; margin: 0 auto;
+    display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 60px;
+  }
+  .footer-brand {}
+  .footer-logo {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px; font-weight: 300; letter-spacing: 0.15em;
+    color: var(--cream); margin-bottom: 16px; display: block;
+  }
+  .footer-tagline {
+    font-size: 13px; font-weight: 300; color: var(--text-dim);
+    line-height: 1.7; max-width: 260px;
+  }
+  .footer-col h5 {
+    font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 20px;
+  }
+  .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+  .footer-col a {
+    font-size: 13px; font-weight: 300; color: var(--text-dim);
+    text-decoration: none; transition: color 0.3s;
+  }
+  .footer-col a:hover { color: var(--cream); }
+  .footer-bottom {
+    max-width: 1200px; margin: 0 auto;
+    padding: 24px 60px;
+    border-top: 1px solid rgba(255,255,255,0.04);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .footer-copy { font-size: 12px; color: var(--text-dim); }
+
+  @keyframes fadeUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* SCENE / VIDEO SECTION */
+  .scene-tab {
+    flex: 1; padding: 14px 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px; font-weight: 400; letter-spacing: 0.1em;
+    text-transform: uppercase; color: rgba(245,240,232,0.35);
+    background: none; border: none; border-right: 1px solid rgba(255,255,255,0.06);
+    transition: color 0.3s, background 0.3s;
+  }
+  .scene-tab:last-child { border-right: none; }
+  .scene-tab:hover { color: rgba(245,240,232,0.6); }
+  .scene-tab.active { color: #C9A96E; background: rgba(201,169,110,0.05); }
+  .story-scene {
+    display: none; padding: 52px;
+    animation: sceneFade 0.5s ease;
+  }
+  .story-scene.active { display: block; }
+  @keyframes sceneFade { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .scene-split {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: start;
+  }
+  .scene-eyebrow {
+    font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+    font-weight: 400; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .scene-eyebrow.pain { color: rgba(255,100,80,0.8); }
+  .scene-eyebrow.gain { color: #C9A96E; }
+  .scene-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(26px, 3vw, 40px); font-weight: 300; line-height: 1.1;
+    color: var(--cream); margin-bottom: 20px;
+  }
+  .scene-body {
+    font-size: 14px; font-weight: 300; color: var(--text-mid);
+    line-height: 1.8; margin-bottom: 28px;
+  }
+  .scene-quote {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 16px; font-style: italic; color: var(--text-mid);
+    padding: 20px 0 0; border-top: 1px solid rgba(255,255,255,0.08);
+    line-height: 1.6;
+  }
+  .scene-quote-source {
+    display: block; margin-top: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px; font-style: normal; letter-spacing: 0.08em;
+    color: var(--text-dim);
+  }
+  .pain-visual {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; padding: 28px;
+  }
+  .pv-hotel { margin-bottom: 20px; }
+  .pv-hotel-name { font-family: 'Cormorant Garamond', serif; font-size: 20px; color: var(--cream); margin-bottom: 4px; }
+  .pv-hotel-tag { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 20px; }
+  .pv-items { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  .pv-item { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-mid); }
+  .pv-item.wrong { color: rgba(245,240,232,0.45); }
+  .pv-item.good { color: rgba(245,240,232,0.8); }
+  .pv-x { color: rgba(255,80,60,0.7); font-size: 14px; }
+  .pv-check { color: rgba(80,220,120,0.8); font-size: 14px; }
+  .pv-reset-badge {
+    font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+    background: rgba(255,60,60,0.08); border: 1px solid rgba(255,60,60,0.2);
+    color: rgba(255,100,80,0.7); padding: 6px 12px; border-radius: 4px;
+    display: inline-block;
+  }
+  .pv-stat-row { display: flex; gap: 0; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 16px; }
+  .pv-stat { flex: 1; text-align: center; padding: 0 16px; border-right: 1px solid rgba(255,255,255,0.06); }
+  .pv-stat:last-child { border-right: none; }
+  .pv-stat-num { font-family: 'Cormorant Garamond', serif; font-size: 36px; font-weight: 300; color: rgba(255,100,80,0.7); line-height: 1; margin-bottom: 4px; }
+  .pv-stat-label { font-size: 11px; color: var(--text-dim); }
+  .scene-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .scene-stat { padding: 20px; border: 1px solid rgba(201,169,110,0.12); border-radius: 8px; }
+  .scene-stat-num { font-family: 'Cormorant Garamond', serif; font-size: 36px; color: var(--gold); margin-bottom: 6px; line-height: 1; }
+  .scene-stat-label { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+  .silo-map { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .silo-box { border: 1px solid rgba(255,80,60,0.15); border-radius: 8px; padding: 14px; background: rgba(255,60,40,0.04); }
+  .silo-title { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-mid); margin-bottom: 6px; }
+  .silo-item { font-size: 12px; color: var(--text-mid); margin-bottom: 4px; }
+  .silo-x { font-size: 11px; color: rgba(255,80,60,0.5); }
+  .silo-result { font-size: 13px; color: rgba(255,100,80,0.6); font-style: italic; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06); }
+  .stayo-flow-mini { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+  .sfm-step { font-size: 13px; color: var(--text-mid); padding: 10px 14px; background: rgba(12,59,46,0.3); border: 1px solid rgba(201,169,110,0.15); border-radius: 6px; display: flex; justify-content: space-between; align-items: center; transition: border-color 0.3s; }
+  .sfm-step.done { border-color: rgba(201,169,110,0.3); }
+  .sfm-check { color: #C9A96E; }
+  .dept-flow { display: flex; flex-direction: column; gap: 8px; }
+  .dept-item { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border: 1px solid rgba(201,169,110,0.15); border-radius: 8px; background: rgba(12,59,46,0.2); font-size: 13px; opacity: 0; transform: translateX(-10px); }
+  .dept-item.activated { animation: deptReveal 0.5s ease forwards; }
+  @keyframes deptReveal { to { opacity: 1; transform: translateX(0); } }
+  .dept-icon { font-size: 18px; flex-shrink: 0; }
+  .dept-name { color: var(--cream); font-weight: 500; font-size: 13px; }
+  .dept-note { color: var(--text-dim); font-size: 11px; margin-top: 2px; }
+  .dept-tick { margin-left: auto; color: rgba(80,220,120,0.8); font-size: 16px; flex-shrink: 0; }
+  .gain-metrics { display: flex; flex-direction: column; gap: 12px; }
+  .gain-metric { display: flex; align-items: flex-start; gap: 14px; padding: 14px; border: 1px solid rgba(201,169,110,0.12); border-radius: 8px; font-size: 13px; color: var(--text-mid); line-height: 1.5; }
+  .gm-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .gain-metric strong { color: var(--cream); }
+  .scene-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    transition: background 0.3s, transform 0.3s;
+  }
+  .scene-dot.active { background: var(--gold); transform: scale(1.3); }
+
+  /* VALUE PROPOSITION */
+  .vp-grid {
+    display: grid; grid-template-columns: 1fr 1.1fr 1fr;
+    gap: 1px; background: rgba(201,169,110,0.08);
+    border: 1px solid rgba(201,169,110,0.08);
+  }
+  .vp-card {
+    background: var(--navy); padding: 44px 36px;
+    display: flex; flex-direction: column; gap: 0;
+    transition: background 0.4s;
+    position: relative;
+  }
+  .vp-card:hover { background: rgba(12,59,46,0.2); }
+  .vp-center-card {
+    background: rgba(12,59,46,0.25);
+    border-left: 1px solid rgba(201,169,110,0.15);
+    border-right: 1px solid rgba(201,169,110,0.15);
+  }
+  .vp-center-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(to right, transparent, var(--gold), transparent);
+  }
+  .vp-stayo-badge {
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--gold); font-family: 'Cormorant Garamond', serif; font-size: 16px;
+    text-align: center; padding-bottom: 4px;
+  }
+  .vp-header { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 28px; }
+  .vp-icon-wrap {
+    width: 52px; height: 52px; border-radius: 12px; flex-shrink: 0;
+    border: 1px solid rgba(201,169,110,0.15);
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.3s;
+  }
+  .vp-for {
+    font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--text-dim); margin-bottom: 4px;
+  }
+  .vp-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px; font-weight: 400; color: var(--cream);
+  }
+  .vp-items { display: flex; flex-direction: column; gap: 14px; margin-bottom: 28px; }
+  .vp-item { display: flex; gap: 12px; align-items: flex-start; font-size: 13px; color: var(--text-mid); line-height: 1.6; }
+  .vp-bullet {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: rgba(201,169,110,0.4);
+    flex-shrink: 0; margin-top: 7px;
+  }
+  .vp-item strong { color: var(--cream); font-weight: 500; }
+  .vp-quote {
+    margin-top: auto; padding-top: 20px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 14px; font-style: italic; color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+
+  /* ── TOPOGRAPHIC BACKGROUND TEXTURE ─────────── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    z-index: 0;
+    opacity: 0.028;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cpath d='M0 200 Q100 150 200 200 Q300 250 400 200' fill='none' stroke='%23C9A96E' stroke-width='0.8'/%3E%3Cpath d='M0 220 Q100 170 200 220 Q300 270 400 220' fill='none' stroke='%23C9A96E' stroke-width='0.8'/%3E%3Cpath d='M0 180 Q100 130 200 180 Q300 230 400 180' fill='none' stroke='%23C9A96E' stroke-width='0.8'/%3E%3Cpath d='M0 160 Q100 110 200 160 Q300 210 400 160' fill='none' stroke='%23C9A96E' stroke-width='0.8'/%3E%3Cpath d='M0 240 Q100 190 200 240 Q300 290 400 240' fill='none' stroke='%23C9A96E' stroke-width='0.8'/%3E%3Cpath d='M0 140 Q100 90 200 140 Q300 190 400 140' fill='none' stroke='%23C9A96E' stroke-width='0.8'/%3E%3Cpath d='M0 260 Q100 210 200 260 Q300 310 400 260' fill='none' stroke='%23C9A96E' stroke-width='0.8'/%3E%3Cpath d='M0 120 Q100 70 200 120 Q300 170 400 120' fill='none' stroke='%23C9A96E' stroke-width='0.8'/%3E%3Cpath d='M0 280 Q100 230 200 280 Q300 330 400 280' fill='none' stroke='%23C9A96E' stroke-width='0.8'/%3E%3Cpath d='M0 300 Q100 250 200 300 Q300 350 400 300' fill='none' stroke='%23C9A96E' stroke-width='0.8'/%3E%3C/svg%3E");
+    background-size: 400px 400px;
+  }
+
+  /* ── MEMORY THREAD SCROLL PROGRESS ──────────── */
+  #memory-thread {
+    position: fixed; left: 28px; top: 50%; transform: translateY(-50%);
+    z-index: 100; display: flex; flex-direction: column;
+    align-items: center; gap: 0;
+    height: 200px;
+  }
+  .mt-track {
+    width: 1px; flex: 1;
+    background: rgba(201,169,110,0.12);
+    position: relative; border-radius: 1px;
+  }
+  .mt-fill {
+    position: absolute; top: 0; left: 0; right: 0;
+    background: linear-gradient(to bottom, rgba(201,169,110,0.3), #C9A96E);
+    border-radius: 1px;
+    transition: height 0.15s ease;
+    height: 0%;
+    will-change: height;
+  }
+  .mt-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--gold); flex-shrink: 0;
+    box-shadow: 0 0 8px rgba(201,169,110,0.6);
+    transition: opacity 0.3s;
+  }
+  .mt-label {
+    writing-mode: vertical-lr; transform: rotate(180deg);
+    font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: rgba(201,169,110,0.35); margin-bottom: 8px;
+  }
+  @media (max-width: 900px) { #memory-thread { display: none; } }
+
+  /* ── JOURNEY TIMELINE CSS ────────────────────── */
+  .jt-track { position: relative; width: 100%; height: 2px; margin-bottom: 0; }
+  .jt-line { position: absolute; inset: 0; background: rgba(201,169,110,0.12); border-radius: 1px; }
+  .jt-progress { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(to right, rgba(201,169,110,0.3), #C9A96E); border-radius: 1px; width: 0%; transition: width 1.5s ease; }
+
+  /* Hero journey timeline */
+  .journey-timeline { width: 100%; max-width: 900px; margin: 0 auto; padding: 0 20px; }
+  .jt-nodes { display: flex; justify-content: space-between; align-items: flex-start; position: relative; padding-top: 24px; }
+  .jt-node { display: flex; flex-direction: column; align-items: center; flex: 1; position: relative; }
+  .jt-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(201,169,110,0.3); border: 1px solid rgba(201,169,110,0.4); flex-shrink: 0; position: relative; z-index: 2; transition: background 0.3s; }
+  .jt-dot--active { background: rgba(201,169,110,0.6); border-color: var(--gold); }
+  .jt-dot--passport { width: 16px; height: 16px; background: var(--gold); border-color: var(--gold-light); box-shadow: 0 0 16px rgba(201,169,110,0.5); }
+  .jt-card { margin-top: 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 14px 12px; text-align: center; min-width: 120px; max-width: 140px; transition: border-color 0.3s, transform 0.3s; }
+  .jt-card:hover { border-color: rgba(201,169,110,0.3); transform: translateY(-4px); }
+  .jt-card--active { border-color: rgba(201,169,110,0.2); }
+  .jt-card--passport { border-color: rgba(201,169,110,0.4); background: linear-gradient(135deg, rgba(12,59,46,0.5), rgba(11,31,58,0.8)); box-shadow: 0 8px 32px rgba(0,0,0,0.3); min-width: 160px; max-width: 180px; }
+  .jt-year { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); margin-bottom: 4px; }
+  .jt-property { font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 400; color: var(--cream); }
+  .jt-city { font-size: 11px; color: var(--text-dim); margin-bottom: 8px; }
+  .jt-prefs { font-size: 10px; color: rgba(201,169,110,0.6); letter-spacing: 0.06em; }
+  .jt-passport-badge { font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; }
+  .jt-label-row { text-align: center; margin-top: 32px; padding-top: 20px; border-top: 1px solid rgba(201,169,110,0.08); }
+  .jt-label-text { font-size: 12px; letter-spacing: 0.1em; color: var(--text-dim); font-style: italic; }
+
+  /* Full journey timeline section */
+  .timeline-container { position: relative; padding: 40px 0; }
+  .timeline-line { position: relative; height: 2px; background: rgba(201,169,110,0.1); margin: 60px 40px; border-radius: 1px; }
+  .timeline-line-track { position: absolute; inset: 0; background: rgba(201,169,110,0.1); }
+  .timeline-line-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: linear-gradient(to right, rgba(201,169,110,0.4), var(--gold)); border-radius: 1px; transition: width 2s ease; }
+  .timeline-nodes { display: flex; justify-content: space-between; align-items: center; margin: 0 20px; position: relative; top: -16px; }
+  .timeline-node { display: flex; flex-direction: column; align-items: center; position: relative; flex: 1; }
+  .timeline-node--passport { flex: 1.4; }
+  .tn-dot { width: 12px; height: 12px; border-radius: 50%; background: rgba(201,169,110,0.25); border: 1px solid rgba(201,169,110,0.4); flex-shrink: 0; z-index: 2; position: relative; transition: all 0.5s; }
+  .tn-dot--passport { width: 20px; height: 20px; background: var(--gold); border-color: var(--gold-light); box-shadow: 0 0 20px rgba(201,169,110,0.5); }
+  .tn-card { padding: 18px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; text-align: center; max-width: 150px; min-width: 120px; transition: all 0.4s; }
+  .tn-card--above { margin-bottom: 16px; order: -1; }
+  .tn-card--below { margin-top: 16px; }
+  .tn-card--passport { border-color: rgba(201,169,110,0.35); background: linear-gradient(135deg, rgba(12,59,46,0.6), rgba(11,31,58,0.9)); box-shadow: 0 12px 40px rgba(0,0,0,0.4); max-width: 180px; min-width: 160px; }
+  .tn-card:hover { border-color: rgba(201,169,110,0.3); transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,0.3); }
+  .tn-year { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); margin-bottom: 4px; }
+  .tn-property { font-family: 'Cormorant Garamond', serif; font-size: 17px; font-weight: 400; color: var(--cream); line-height: 1.2; }
+  .tn-city { font-size: 11px; color: var(--text-dim); margin-bottom: 8px; }
+  .tn-prefs-count { font-size: 11px; color: var(--text-dim); margin-bottom: 8px; }
+  .tn-count { color: var(--gold); font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 300; }
+  .tn-tags { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
+  .tn-tag { font-size: 9px; padding: 3px 8px; border: 1px solid rgba(255,255,255,0.1); border-radius: 100px; color: var(--text-dim); letter-spacing: 0.04em; }
+  .timeline-caption { text-align: center; margin-top: 48px; font-size: 13px; font-style: italic; color: var(--text-dim); letter-spacing: 0.06em; }
+
+  /* ── QUOTE TICKER ────────────────────────────── */
+  .ticker-wrapper { overflow: hidden; }
+  .ticker-track { display: flex; gap: 0; white-space: nowrap; animation: tickerScroll 40s linear infinite; will-change: transform; }
+  .ticker-track:hover { animation-play-state: paused; }
+  @keyframes tickerScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+  .ticker-item { display: inline-flex; align-items: center; gap: 16px; padding: 0 48px; flex-shrink: 0; }
+  .ticker-item::before { content: '◈'; color: rgba(201,169,110,0.3); font-size: 12px; }
+  .ticker-quote { font-family: 'Cormorant Garamond', serif; font-size: 15px; font-style: italic; color: var(--text-mid); white-space: nowrap; }
+  .ticker-author { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(201,169,110,0.5); white-space: nowrap; flex-shrink: 0; }
+
+  /* ── MEMORY BUILDS CSS ───────────────────────── */
+  .memory-stages { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 0; align-items: start; }
+  .ms-arrow { font-family: 'Cormorant Garamond', serif; font-size: 32px; color: rgba(201,169,110,0.3); display: flex; align-items: center; justify-content: center; padding: 60px 16px 0; }
+  .ms-stage { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 28px; transition: border-color 0.3s; }
+  .ms-stage:hover { border-color: rgba(201,169,110,0.2); }
+  .ms-stage--full { border-color: rgba(201,169,110,0.25); background: rgba(12,59,46,0.2); position: relative; }
+  .ms-header { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .ms-stay-label { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); margin-bottom: 4px; }
+  .ms-property { font-family: 'Cormorant Garamond', serif; font-size: 18px; color: var(--cream); }
+  .ms-passport-inner { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+  .ms-pref-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-mid); transition: opacity 0.3s; }
+  .ms-pref-row.empty { opacity: 0.35; }
+  .ms-pref-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); flex-shrink: 0; }
+  .ms-pref-dot--empty { background: rgba(255,255,255,0.1); border: 1px dashed rgba(255,255,255,0.2); }
+  .ms-empty-text { font-style: italic; color: var(--text-dim); }
+  .ms-score { margin-top: 12px; }
+  .ms-score-bar { height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; margin-bottom: 6px; position: relative; overflow: hidden; }
+  .ms-score-bar::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: var(--fill); background: linear-gradient(to right, rgba(12,59,46,0.8), var(--gold)); border-radius: 2px; }
+  .ms-score-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); }
+  .ms-full-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; background: rgba(12,59,46,0.9); border: 1px solid var(--gold); color: var(--gold); padding: 4px 14px; border-radius: 100px; white-space: nowrap; }
+
+  /* ── AI PASSPORT BUILDER CSS ─────────────────── */
+  .passport-builder-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; max-width: 900px; margin: 0 auto; }
+  .pb-chat { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+  .pb-chat-header { padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 10px; background: rgba(11,31,58,0.6); }
+  .pb-chat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .pb-chat-title { font-size: 13px; font-weight: 500; color: var(--cream); flex: 1; }
+  .pb-chat-status { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(80,220,120,0.7); }
+  .pb-messages { flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 12px; min-height: 300px; max-height: 360px; overflow-y: auto; }
+  .pb-msg { display: flex; }
+  .pb-msg--ai { justify-content: flex-start; }
+  .pb-msg--user { justify-content: flex-end; }
+  .pb-msg-bubble { padding: 12px 16px; border-radius: 12px; font-size: 13px; font-weight: 300; line-height: 1.6; max-width: 85%; }
+  .pb-msg--ai .pb-msg-bubble { background: rgba(12,59,46,0.4); border: 1px solid rgba(201,169,110,0.15); color: var(--text-mid); border-radius: 4px 12px 12px 12px; }
+  .pb-msg--user .pb-msg-bubble { background: rgba(201,169,110,0.12); border: 1px solid rgba(201,169,110,0.25); color: var(--cream); border-radius: 12px 4px 12px 12px; }
+  .pb-input-row { display: flex; gap: 8px; padding: 16px; border-top: 1px solid rgba(255,255,255,0.06); background: rgba(11,31,58,0.4); }
+  .pb-input { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 14px; font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--cream); outline: none; transition: border-color 0.3s; cursor: text; }
+  .pb-input::placeholder { color: var(--text-dim); }
+  .pb-input:focus { border-color: rgba(201,169,110,0.4); }
+  .pb-send { width: 40px; height: 40px; background: var(--gold); border: none; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.3s, transform 0.2s; color: var(--navy); }
+  .pb-send:hover { background: var(--gold-light); transform: scale(1.05); }
+  .pb-send:disabled { background: rgba(201,169,110,0.2); cursor: not-allowed; }
+  .pb-passport { background: linear-gradient(135deg, rgba(12,59,46,0.5), rgba(11,31,58,0.9)); border: 1px solid rgba(201,169,110,0.2); border-radius: 16px; padding: 28px; display: flex; flex-direction: column; gap: 0; }
+  .pb-passport-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid rgba(201,169,110,0.1); }
+  .pb-passport-logo { font-family: 'Cormorant Garamond', serif; font-size: 18px; color: var(--gold); letter-spacing: 0.1em; }
+  .pb-passport-title { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-dim); }
+  .pb-passport-status { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(201,169,110,0.5); }
+  .pb-passport-avatar { text-align: center; margin-bottom: 20px; }
+  .pb-avatar-circle { width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, var(--gold), var(--emerald)); margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', serif; font-size: 22px; color: var(--cream); font-style: italic; }
+  .pb-avatar-name { font-family: 'Cormorant Garamond', serif; font-size: 18px; color: var(--cream); }
+  .pb-passport-prefs { flex: 1; min-height: 200px; }
+  .pb-pref-empty { font-size: 13px; font-style: italic; color: var(--text-dim); text-align: center; padding: 40px 0; }
+  .pb-pref-tag { display: inline-block; font-size: 11px; padding: 5px 12px; border: 1px solid rgba(201,169,110,0.25); border-radius: 100px; color: var(--gold-light); margin: 4px; background: rgba(201,169,110,0.08); animation: tagPop 0.3s ease; }
+  @keyframes tagPop { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+  .pb-thinking { display: flex; gap: 4px; align-items: center; padding: 12px 16px; }
+  .pb-thinking-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(201,169,110,0.5); animation: thinkPulse 1s ease-in-out infinite; }
+  .pb-thinking-dot:nth-child(2) { animation-delay: 0.2s; }
+  .pb-thinking-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes thinkPulse { 0%,100% { opacity: 0.3; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-4px); } }
+  .pb-passport-footer { margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(201,169,110,0.1); text-align: center; }
+  .pb-footer-item { font-size: 10px; letter-spacing: 0.08em; color: var(--text-dim); }
+
+  /* ── URGENCY BADGE ───────────────────────────── */
+  .urgency-badge { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; background: rgba(12,59,46,0.6); border: 1px solid rgba(201,169,110,0.3); color: var(--gold); padding: 8px 20px; border-radius: 100px; margin-bottom: 32px; }
+  .urgency-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(80,220,120,0.8); animation: urgencyPulse 2s ease-in-out infinite; will-change: opacity; }
+  @keyframes urgencyPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    nav { padding: 20px 24px; }
+    nav.scrolled { padding: 14px 24px; }
+    .nav-links { display: none; }
+    section { padding: 80px 24px; }
+    #problem, #guests, #privacy { grid-template-columns: 1fr; gap: 40px; }
+    .steps-grid, .features-grid { grid-template-columns: 1fr; }
+    .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+    .trust-grid { grid-template-columns: 1fr; }
+    .solution-diagram { grid-template-columns: 1fr; gap: 16px; }
+    .sol-center-wrapper { display: none; }
+    .features-header { grid-template-columns: 1fr; }
+    footer { grid-template-columns: 1fr 1fr; }
+    .dash-body { grid-template-columns: 1fr; }
+    .dash-sidebar { display: none; }
+    .dash-sections { grid-template-columns: 1fr; }
+    .scene-split { grid-template-columns: 1fr; gap: 28px; }
+    .story-scene { padding: 28px 20px; }
+    .scene-tab { font-size: 9px; padding: 12px 6px; }
+    .vp-grid { grid-template-columns: 1fr; }
+    .vp-center-card { border: none; border-top: 1px solid rgba(201,169,110,0.15); border-bottom: 1px solid rgba(201,169,110,0.15); }
+    .silo-map { grid-template-columns: 1fr; }
+    .scene-stat-grid { grid-template-columns: 1fr; }
+    .pv-stat-row { flex-direction: column; gap: 12px; }
+    .pv-stat { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 12px; }
+    .pv-stat:last-child { border-bottom: none; padding-bottom: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- noise removed - using CSS grain instead -->
+
+<!-- Memory Thread Progress -->
+<div id="memory-thread">
+  <span class="mt-label">Memory</span>
+  <div class="mt-track">
+    <div class="mt-fill" id="mtFill"></div>
+  </div>
+  <div class="mt-dot"></div>
+</div>
+<!-- simple cursor via CSS -->
+
+<div id="custom-cursor"></div>
+
+<nav id="navbar">
+  <a href="#" class="nav-logo" aria-label="STAYO">
+    <svg viewBox="0 0 120 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Diamond mark -->
+      <g>
+        <polygon points="14,4 20,16 14,28 8,16" fill="none" stroke="#C9A96E" stroke-width="1.2"/>
+        <polygon points="14,9 18,16 14,23 10,16" fill="#C9A96E" opacity="0.25"/>
+        <line x1="14" y1="4" x2="14" y2="28" stroke="#C9A96E" stroke-width="0.5" opacity="0.4"/>
+        <line x1="8" y1="16" x2="20" y2="16" stroke="#C9A96E" stroke-width="0.5" opacity="0.4"/>
+      </g>
+      <!-- STAYO wordmark -->
+      <text x="28" y="22" font-family="'Cormorant Garamond', serif" font-size="20" font-weight="300" letter-spacing="5" fill="#F5F0E8">STAYO</text>
+    </svg>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#problem">The Problem</a></li>
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#features">Product</a></li>
+    <li><a href="#team">Team</a></li>
+    <li><a href="#cta" class="nav-cta">Request Demo</a></li>
+  </ul>
+</nav>
+
+
+<div id="hero"
+>
+  <div class="hero-bg"></div>
+  <div class="hero-lines" id="heroLines"></div>
+
+  <!-- Hero Logo Mark -->
+  <div style="opacity:0;animation:fadeUp 1s ease forwards 0.1s;margin-bottom:32px">
+    <svg viewBox="0 0 60 60" width="56" height="56" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="30,4 50,30 30,56 10,30" fill="none" stroke="#C9A96E" stroke-width="1.5"/>
+      <polygon points="30,14 42,30 30,46 18,30" fill="#C9A96E" opacity="0.18"/>
+      <polygon points="30,20 38,30 30,40 22,30" fill="#C9A96E" opacity="0.32"/>
+      <circle cx="30" cy="30" r="3" fill="#C9A96E"/>
+      <line x1="30" y1="4" x2="30" y2="56" stroke="#C9A96E" stroke-width="0.5" opacity="0.3"/>
+      <line x1="10" y1="30" x2="50" y2="30" stroke="#C9A96E" stroke-width="0.5" opacity="0.3"/>
+    </svg>
+  </div>
+  <div class="hero-eyebrow">Premium Hospitality Technology · Pre-Seed Stage</div>
+  <h1 class="hero-title">Hospitality Finally<br>Has a <em>Memory.</em></h1>
+  <p class="hero-sub">STAYO is the memory layer for premium hospitality — allowing guest preferences and context to travel with them so service feels genuinely personal, wherever they stay.</p>
+  <div class="hero-btns">
+    <a href="#cta" class="btn-primary">Request a Demo</a>
+    <a href="#how" class="btn-ghost">See How It Works</a>
+  </div>
+
+  <div class="hero-visual">
+    <!-- Journey timeline -->
+    <div class="journey-timeline">
+      <div class="jt-track">
+        <div class="jt-line"></div>
+        <div class="jt-progress" id="jtProgress"></div>
+      </div>
+      <div class="jt-nodes">
+        <div class="jt-node reveal" style="animation-delay:0.8s">
+          <div class="jt-dot"></div>
+          <div class="jt-card">
+            <div class="jt-year">2022</div>
+            <div class="jt-property">Rosewood</div>
+            <div class="jt-city">Paris</div>
+            <div class="jt-prefs">2 preferences</div>
+          </div>
+        </div>
+        <div class="jt-node reveal" style="animation-delay:1s">
+          <div class="jt-dot jt-dot--active"></div>
+          <div class="jt-card jt-card--active">
+            <div class="jt-year">2023</div>
+            <div class="jt-property">Bulgari</div>
+            <div class="jt-city">Milan</div>
+            <div class="jt-prefs">5 preferences</div>
+          </div>
+        </div>
+        <div class="jt-node jt-node--passport reveal" style="animation-delay:1.2s">
+          <div class="jt-passport-badge">◈ Passport</div>
+          <div class="jt-dot jt-dot--passport"></div>
+          <div class="jt-card jt-card--passport">
+            <div class="profile-avatar" style="width:40px;height:40px;font-size:18px;margin:0 auto 8px">J</div>
+            <div class="profile-label" style="font-size:9px">James Harrington</div>
+            <div class="profile-tags" style="margin-top:8px;justify-content:center">
+              <span class="profile-tag">High floor</span>
+              <span class="profile-tag">No fragrance</span>
+              <span class="profile-tag">Plant-based</span>
+            </div>
+          </div>
+        </div>
+        <div class="jt-node reveal" style="animation-delay:1.4s">
+          <div class="jt-dot jt-dot--active"></div>
+          <div class="jt-card jt-card--active">
+            <div class="jt-year">2024</div>
+            <div class="jt-property">Aman</div>
+            <div class="jt-city">Tokyo</div>
+            <div class="jt-prefs">8 preferences</div>
+          </div>
+        </div>
+        <div class="jt-node reveal" style="animation-delay:1.6s">
+          <div class="jt-dot"></div>
+          <div class="jt-card">
+            <div class="jt-year">2025</div>
+            <div class="jt-property">Four Seasons</div>
+            <div class="jt-city">London</div>
+            <div class="jt-prefs">12 preferences</div>
+          </div>
+        </div>
+      </div>
+      <div class="jt-label-row">
+        <span class="jt-label-text">Memory compounds across every stay</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- scroll indicator moved to fixed position in CSS -->
+</div>
+
+<div class="divider"></div>
+
+
+<section id="problem"
+>
+  <div class="reveal">
+    <div class="section-label">The Problem</div>
+    <h2 class="section-title">Hospitality Has<br><em>No Memory</em></h2>
+    <p class="section-body">Every hotel stay starts from zero. Guest preferences captured over years of travel are scattered, siloed, and forgotten. The result is personalization that perpetually fails.</p>
+
+    <div class="problem-list">
+      <div class="problem-item reveal reveal-delay-1">
+        <div class="problem-num">01</div>
+        <div class="problem-text">
+          <h4>Preferences Repeat Endlessly</h4>
+          <p>Guests re-explain the same preferences — dietary requirements, room setup, rituals — on every single stay, at every property.</p>
+        </div>
+      </div>
+      <div class="problem-item reveal reveal-delay-2">
+        <div class="problem-num">02</div>
+        <div class="problem-text">
+          <h4>Data is Fragmented &amp; Siloed</h4>
+          <p>PMS, CRM, and concierge tools each hold fragments. None communicate. No unified guest picture ever forms.</p>
+        </div>
+      </div>
+      <div class="problem-item reveal reveal-delay-3">
+        <div class="problem-num">03</div>
+        <div class="problem-text">
+          <h4>Teams Operate Without Context</h4>
+          <p>Front desk, F&amp;B, and housekeeping all work in silos. A preference known to one team is invisible to others.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="problem-visual reveal reveal-delay-2">
+    <div class="broken-flow">
+      <div style="font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px;">Guest Journey Today</div>
+      <div class="stay-card">
+        <div class="stay-dot" style="background:var(--gold)"></div>
+        <div class="stay-info">
+          <div class="stay-hotel">Four Seasons Geneva — Jan 2023</div>
+          <div class="stay-pref">High floor · Champagne arrival · Extra pillows · No nuts</div>
+        </div>
+      </div>
+      <div class="break-arrow">↓ Check-out → Memory Erased</div>
+      <div class="stay-card">
+        <div class="stay-dot"></div>
+        <div class="stay-info">
+          <div class="stay-hotel">Hotel de Crillon — Apr 2023</div>
+          <div class="stay-pref">Starts from zero again</div>
+        </div>
+      </div>
+      <div class="break-arrow">↓ Check-out → Memory Erased</div>
+      <div class="stay-card">
+        <div class="stay-dot"></div>
+        <div class="stay-info">
+          <div class="stay-hotel">Bulgari Milan — Sep 2024</div>
+          <div class="stay-pref">Guest repeats preferences. Again.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:32px;padding:24px;border:1px solid rgba(255,80,80,0.15);border-radius:8px;background:rgba(255,80,80,0.03)">
+      <div style="font-size:12px;color:rgba(255,120,120,0.7);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">The Cost</div>
+      <div style="font-size:14px;color:var(--text-mid);line-height:1.6">71% of luxury travelers say they are <strong style="color:var(--cream)">more loyal</strong> to hotels that remember their preferences — yet fewer than 12% report consistent recognition across stays.</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- QUOTE TICKER -->
+<div id="quote-ticker" style="padding:40px 0;overflow:hidden;border-top:1px solid rgba(201,169,110,0.08);border-bottom:1px solid rgba(201,169,110,0.08);background:rgba(11,31,58,0.6)">
+  <div class="ticker-wrapper">
+    <div class="ticker-track" id="tickerTrack">
+      <div class="ticker-item"><span class="ticker-quote">"Every service failure has a cost. STAYO reduces those failures — the ROI is immediate."</span><span class="ticker-author">Traci Bush · W Algarve Hotel &amp; Residences</span></div>
+      <div class="ticker-item"><span class="ticker-quote">"The portability across brands is the core differentiator versus chain loyalty systems."</span><span class="ticker-author">Patrick Hanash · CFO, Cedar Capital Partners</span></div>
+      <div class="ticker-item"><span class="ticker-quote">"Pre-arrival guest intelligence available to operations is almost always incomplete."</span><span class="ticker-author">Traci Bush · Development &amp; Operations Executive</span></div>
+      <div class="ticker-item"><span class="ticker-quote">"Boutique hotels can match chain CRM sophistication. With STAYO, that combination is unbeatable."</span><span class="ticker-author">Carine Herau · Podere Anthaia</span></div>
+      <div class="ticker-item"><span class="ticker-quote">"The preference acknowledgment — not perfection — is the core value driver for travellers."</span><span class="ticker-author">Mougeh Kowkabi · National Geographic Society</span></div>
+      <div class="ticker-item"><span class="ticker-quote">"Data portability is the single most compelling feature. It levels the playing field."</span><span class="ticker-author">Traci Bush · W Algarve Hotel &amp; Residences</span></div>
+      <div class="ticker-item"><span class="ticker-quote">"Cross-brand portability — preferences that travel — is exactly where unique value lies."</span><span class="ticker-author">Mougeh Kowkabi · VP, National Geographic Society</span></div>
+      <!-- Duplicate for seamless loop -->
+      <div class="ticker-item"><span class="ticker-quote">"Every service failure has a cost. STAYO reduces those failures — the ROI is immediate."</span><span class="ticker-author">Traci Bush · W Algarve Hotel &amp; Residences</span></div>
+      <div class="ticker-item"><span class="ticker-quote">"The portability across brands is the core differentiator versus chain loyalty systems."</span><span class="ticker-author">Patrick Hanash · CFO, Cedar Capital Partners</span></div>
+      <div class="ticker-item"><span class="ticker-quote">"Pre-arrival guest intelligence available to operations is almost always incomplete."</span><span class="ticker-author">Traci Bush · Development &amp; Operations Executive</span></div>
+    </div>
+  </div>
+</div>
+
+
+
+
+<section id="video-section"
+ style="padding:120px 0;max-width:100%;overflow:hidden;background:linear-gradient(180deg,transparent,rgba(12,59,46,0.07),transparent)">
+  <div style="max-width:1200px;margin:0 auto;padding:0 60px">
+    <div class="reveal" style="text-align:center;margin-bottom:72px">
+      <div class="section-label" style="justify-content:center">The Real Cost</div>
+      <h2 class="section-title" style="text-align:center">Every Stay,<br>Starts <em>From Zero.</em></h2>
+      <p class="section-body" style="margin:0 auto;text-align:center;max-width:520px">This is what it looks like for a premium traveller today — and what STAYO changes.</p>
+    </div>
+
+    <!-- Cinematic Story Panel -->
+    <div class="reveal reveal-delay-1" id="story-container" style="position:relative;border:1px solid rgba(201,169,110,0.15);border-radius:16px;overflow:hidden;background:rgba(11,31,58,0.6);box-shadow:0 40px 100px rgba(0,0,0,0.5)">
+
+      <!-- Scene progress bar -->
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:rgba(255,255,255,0.06);z-index:10">
+        <div id="story-progress" style="height:100%;background:linear-gradient(to right,#0C3B2E,#C9A96E);width:0%;transition:width 0.6s ease"></div>
+      </div>
+
+      <!-- Scene tabs -->
+      <div style="display:flex;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(11,31,58,0.8)">
+        <button class="scene-tab active" data-scene="0" onclick="goScene(0)">① The Pain</button>
+        <button class="scene-tab" data-scene="1" onclick="goScene(1)">② The Breaking Point</button>
+        <button class="scene-tab" data-scene="2" onclick="goScene(2)">③ Enter STAYO</button>
+        <button class="scene-tab" data-scene="3" onclick="goScene(3)">④ The Gain</button>
+      </div>
+
+      <!-- Scenes -->
+      <div id="scenes-wrapper" style="position:relative;min-height:520px">
+
+        <!-- SCENE 0: THE PAIN -->
+        <div class="story-scene active" id="scene-0">
+          <div class="scene-split">
+            <div class="scene-left">
+              <div class="scene-eyebrow pain">😤 Guest Frustration</div>
+              <h3 class="scene-title">You've stayed here before.<br>They don't remember.</h3>
+              <p class="scene-body">You're a premium traveller. You've stayed at dozens of luxury properties. You always need a high floor, no fragrance products, a firm mattress, and a plant-based breakfast. You've communicated this dozens of times. At check-in, the room smells of jasmine. The minibar is full. The F&amp;B team has no idea.</p>
+              <div class="scene-quote">"Every arrival, I'm explaining myself again. What's the point of a loyalty number if nothing is remembered?"<span class="scene-quote-source">— Patrick Hanash, CFO, Cedar Capital Partners · Stayo Interview Participant</span></div>
+            </div>
+            <div class="scene-right">
+              <!-- Animated pain visual: guest arriving, preferences ignored -->
+              <div class="pain-visual">
+                <div class="pv-hotel">
+                  <div class="pv-hotel-name">The Langham, London</div>
+                  <div class="pv-hotel-tag">Return Guest · 6 stays</div>
+                  <div class="pv-items">
+                    <div class="pv-item wrong"><span class="pv-x">✗</span> Room 420 — Ground floor</div>
+                    <div class="pv-item wrong"><span class="pv-x">✗</span> Jasmine diffuser in room</div>
+                    <div class="pv-item wrong"><span class="pv-x">✗</span> Full dairy minibar</div>
+                    <div class="pv-item wrong"><span class="pv-x">✗</span> No breakfast note</div>
+                    <div class="pv-item wrong"><span class="pv-x">✗</span> Standard welcome card</div>
+                  </div>
+                  <div class="pv-reset-badge">Memory Reset at Checkout</div>
+                </div>
+                <div class="pv-stat-row">
+                  <div class="pv-stat"><div class="pv-stat-num">6</div><div class="pv-stat-label">stays at this property</div></div>
+                  <div class="pv-stat"><div class="pv-stat-num">0</div><div class="pv-stat-label">preferences remembered</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SCENE 1: THE BREAKING POINT -->
+        <div class="story-scene" id="scene-1">
+          <div class="scene-split">
+            <div class="scene-left">
+              <div class="scene-eyebrow pain">⚠️ Operational Failure</div>
+              <h3 class="scene-title">The team wanted to help.<br>They had no idea how.</h3>
+              <p class="scene-body">It's not that hotel staff don't care. It's that they're operating blind. The F&amp;B team doesn't know about the dietary restriction in the booking note. Housekeeping didn't get the fragrance memo. Front desk never received the floor preference. The system is structurally broken — not the people.</p>
+              <div class="scene-stat-grid">
+                <div class="scene-stat"><div class="scene-stat-num">88%</div><div class="scene-stat-label">of GMs say guest data is fragmented across systems</div></div>
+                <div class="scene-stat"><div class="scene-stat-num">3×</div><div class="scene-stat-label">average preference hand-offs lost between departments</div></div>
+              </div>
+            </div>
+            <div class="scene-right">
+              <div class="pain-visual">
+                <div style="font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:rgba(245,240,232,0.4);margin-bottom:16px">Where preferences live today</div>
+                <div class="silo-map">
+                  <div class="silo-box" style="border-color:rgba(255,80,80,0.25)">
+                    <div class="silo-title">PMS</div>
+                    <div class="silo-item">"High floor" — booking note</div>
+                    <div class="silo-x">Not distributed</div>
+                  </div>
+                  <div class="silo-box" style="border-color:rgba(255,80,80,0.25)">
+                    <div class="silo-title">CRM</div>
+                    <div class="silo-item">"No nuts" — 2023 flag</div>
+                    <div class="silo-x">Marketing only</div>
+                  </div>
+                  <div class="silo-box" style="border-color:rgba(255,80,80,0.25)">
+                    <div class="silo-title">Concierge App</div>
+                    <div class="silo-item">"Firm pillows" — old note</div>
+                    <div class="silo-x">Local, not shared</div>
+                  </div>
+                  <div class="silo-box" style="border-color:rgba(255,80,80,0.25)">
+                    <div class="silo-title">Staff Memory</div>
+                    <div class="silo-item">"Fragrance allergy"</div>
+                    <div class="silo-x">Left with last employee</div>
+                  </div>
+                </div>
+                <div class="silo-result">Result: no department has the full picture. Every department fails alone.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SCENE 2: ENTER STAYO -->
+        <div class="story-scene" id="scene-2">
+          <div class="scene-split">
+            <div class="scene-left">
+              <div class="scene-eyebrow gain">◈ STAYO Activates</div>
+              <h3 class="scene-title">One profile.<br>Every team. Before arrival.</h3>
+              <p class="scene-body">When James makes a reservation at a STAYO-connected property, he grants one-tap permission. His Preference Passport — built once, owned by him — flows to the hotel. Every relevant department receives structured, role-adapted insight before he lands.</p>
+              <div class="stayo-flow-mini">
+                <div class="sfm-step done">Guest grants permission <span class="sfm-check">✓</span></div>
+                <div class="sfm-step done">Profile transmitted to hotel <span class="sfm-check">✓</span></div>
+                <div class="sfm-step done">Departments briefed automatically <span class="sfm-check">✓</span></div>
+                <div class="sfm-step done">Room prepared before arrival <span class="sfm-check">✓</span></div>
+              </div>
+            </div>
+            <div class="scene-right">
+              <div class="pain-visual" style="border-color:rgba(201,169,110,0.25);background:rgba(12,59,46,0.3)">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+                  <div style="width:40px;height:40px;background:linear-gradient(135deg,#C9A96E,#0C3B2E);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:18px;color:#F5F0E8;font-style:italic">J</div>
+                  <div>
+                    <div style="font-size:13px;color:#F5F0E8;font-weight:500">James Harrington</div>
+                    <div style="font-size:11px;color:#C9A96E;letter-spacing:0.08em">Preference Passport · Active</div>
+                  </div>
+                  <div style="margin-left:auto;font-size:10px;background:rgba(12,59,46,0.8);border:1px solid rgba(201,169,110,0.3);color:#C9A96E;padding:4px 10px;border-radius:100px">● Shared</div>
+                </div>
+                <div class="dept-flow">
+                  <div class="dept-item"><span class="dept-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="7" r="5" stroke="#C9A96E" stroke-width="1.2"/><path d="M4 13h10M9 12v2" stroke="#C9A96E" stroke-width="1.2" stroke-linecap="round"/></svg></span><div><div class="dept-name">Front Desk</div><div class="dept-note">Suite 1402 — high floor confirmed</div></div><span class="dept-tick">✓</span></div>
+                  <div class="dept-item" style="animation-delay:0.15s"><span class="dept-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 10V7a1 1 0 0 1 1-1h4V5H2M2 10h14M2 10v4M16 10v4" stroke="#C9A96E" stroke-width="1.2" stroke-linecap="round"/><rect x="8" y="6" width="8" height="4" rx="1" stroke="#C9A96E" stroke-width="1.2"/></svg></span><div><div class="dept-name">Housekeeping</div><div class="dept-note">No fragrance · firm pillows · minibar cleared</div></div><span class="dept-tick">✓</span></div>
+                  <div class="dept-item" style="animation-delay:0.3s"><span class="dept-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M6 2v5a2.5 2.5 0 0 1-2.5 2.5M6 2v14M12 2v14M14.5 2c0 2.5-1.5 4-2.5 4" stroke="#C9A96E" stroke-width="1.2" stroke-linecap="round"/></svg></span><div><div class="dept-name">F&amp;B</div><div class="dept-note">Plant-based · no nuts · espresso 7am</div></div><span class="dept-tick">✓</span></div>
+                  <div class="dept-item" style="animation-delay:0.45s"><span class="dept-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="4" r="2" stroke="#C9A96E" stroke-width="1.2"/><path d="M5 9c0-2.21 1.79-4 4-4s4 1.79 4 4M9 9v7M6 12l3-2.5 3 2.5" stroke="#C9A96E" stroke-width="1.2" stroke-linecap="round"/></svg></span><div><div class="dept-name">Wellness</div><div class="dept-note">Gym access from 6am · no fragrance spa</div></div><span class="dept-tick">✓</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SCENE 3: THE GAIN -->
+        <div class="story-scene" id="scene-3">
+          <div class="scene-split">
+            <div class="scene-left">
+              <div class="scene-eyebrow gain">✨ The Transformation</div>
+              <h3 class="scene-title">Same guest.<br>Completely different stay.</h3>
+              <p class="scene-body">James arrives. The room is on the 14th floor. No jasmine. Firm pillows, minibar cleared, still water ready. Breakfast is pre-arranged. The gym card is waiting. He didn't ask for any of it. The hotel simply knew. That is the STAYO difference — service that feels human because it finally has memory.</p>
+              <div class="gain-metrics">
+                <div class="gain-metric"><div class="gm-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 4h12a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H6l-4 3V6a2 2 0 0 1 2-2z" stroke="#C9A96E" stroke-width="1.2" stroke-linejoin="round"/></svg></div><div class="gm-text"><strong>0 preferences</strong> repeated by guest at arrival</div></div>
+                <div class="gain-metric"><div class="gm-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M11 2L4 12h7l-2 6 9-10h-7l2-6z" stroke="#C9A96E" stroke-width="1.2" stroke-linejoin="round"/></svg></div><div class="gm-text"><strong>4 departments</strong> briefed automatically, pre-arrival</div></div>
+                <div class="gain-metric"><div class="gm-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 10a7 7 0 0 1 12-4.9L17 7M17 10a7 7 0 0 1-12 4.9L3 13" stroke="#C9A96E" stroke-width="1.2" stroke-linecap="round"/><path d="M14 4l3 2-1.5 2.5M3 13l3 2 1.5-2.5" stroke="#C9A96E" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="gm-text"><strong>Profile compounds</strong> with every stay — memory that grows</div></div>
+              </div>
+            </div>
+            <div class="scene-right">
+              <div class="pain-visual" style="border-color:rgba(12,200,100,0.2);background:rgba(12,59,46,0.4)">
+                <div class="pv-hotel" style="border-color:rgba(12,200,100,0.15)">
+                  <div class="pv-hotel-name">The Langham, London</div>
+                  <div class="pv-hotel-tag" style="color:rgba(80,220,120,0.7)">STAYO Connected · Pre-Arrival Brief Sent</div>
+                  <div class="pv-items">
+                    <div class="pv-item good"><span class="pv-check">✓</span> Suite 1402 — 14th floor, city view</div>
+                    <div class="pv-item good"><span class="pv-check">✓</span> No fragrance — hypoallergenic products</div>
+                    <div class="pv-item good"><span class="pv-check">✓</span> Minibar replaced with still water</div>
+                    <div class="pv-item good"><span class="pv-check">✓</span> Plant-based breakfast pre-arranged</div>
+                    <div class="pv-item good"><span class="pv-check">✓</span> Personalised welcome note</div>
+                  </div>
+                  <div class="pv-reset-badge" style="background:rgba(12,59,46,0.8);border-color:rgba(80,220,120,0.3);color:rgba(80,220,120,0.9)">Memory Retained With Consent</div>
+                </div>
+                <div class="pv-stat-row">
+                  <div class="pv-stat"><div class="pv-stat-num" style="color:#C9A96E">6</div><div class="pv-stat-label">stays · all remembered</div></div>
+                  <div class="pv-stat"><div class="pv-stat-num" style="color:rgba(80,220,120,0.9)">5/5</div><div class="pv-stat-label">preferences honoured</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Navigation controls -->
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 32px;border-top:1px solid rgba(255,255,255,0.06);background:rgba(11,31,58,0.7)">
+        <button onclick="prevScene()" id="btn-prev" style="font-family:'DM Sans',sans-serif;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(245,240,232,0.4);background:none;border:1px solid rgba(245,240,232,0.1);padding:10px 20px;cursor:none;transition:all 0.3s" onmouseover="this.style.borderColor='rgba(201,169,110,0.4)';this.style.color='#C9A96E'" onmouseout="this.style.borderColor='rgba(245,240,232,0.1)';this.style.color='rgba(245,240,232,0.4)'">← Previous</button>
+        <div style="display:flex;gap:8px">
+          <span class="scene-dot active" onclick="goScene(0)"></span>
+          <span class="scene-dot" onclick="goScene(1)"></span>
+          <span class="scene-dot" onclick="goScene(2)"></span>
+          <span class="scene-dot" onclick="goScene(3)"></span>
+        </div>
+        <button onclick="nextScene()" id="btn-next" style="font-family:'DM Sans',sans-serif;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:#C9A96E;background:none;border:1px solid rgba(201,169,110,0.3);padding:10px 20px;cursor:none;transition:all 0.3s" onmouseover="this.style.background='rgba(201,169,110,0.1)'" onmouseout="this.style.background='none'">Next →</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+
+<section id="value-prop"
+ style="padding:120px 60px;max-width:1200px;margin:0 auto">
+  <div class="reveal" style="text-align:center;margin-bottom:72px">
+    <div class="section-label" style="justify-content:center">Value Proposition</div>
+    <h2 class="section-title" style="text-align:center">Personalization That<br><em>Benefits Everyone</em></h2>
+    <p class="section-body" style="margin:0 auto;text-align:center">STAYO aligns the interests of guests, hotel teams, and brands around a single architecture — shared, permissioned, compounding intelligence.</p>
+  </div>
+
+  <div class="vp-grid reveal reveal-delay-1">
+    <!-- VALUE PROPOSITION -->
+    <div class="vp-card" id="vp-guests">
+      <div class="vp-header">
+        <div class="vp-icon-wrap" style="background:rgba(201,169,110,0.1);border-color:rgba(201,169,110,0.25)">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <circle cx="14" cy="10" r="5" stroke="#C9A96E" stroke-width="1.2"/>
+            <path d="M4 26c0-5.523 4.477-10 10-10s10 4.477 10 10" stroke="#C9A96E" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="vp-for">For Guests</div>
+          <h3 class="vp-title">Recognition &amp; Control</h3>
+        </div>
+      </div>
+      <div class="vp-items">
+        <div class="vp-item"><div class="vp-bullet"></div><div><strong>Control and transparency</strong> — you own your profile, always</div></div>
+        <div class="vp-item"><div class="vp-bullet"></div><div><strong>No repetition across stays</strong> — state preferences once, forever</div></div>
+        <div class="vp-item"><div class="vp-bullet"></div><div><strong>More accurate recognition</strong> — service that improves with every stay</div></div>
+        <div class="vp-item"><div class="vp-bullet"></div><div><strong>Privacy by design</strong> — time-bound access, expires at checkout</div></div>
+      </div>
+      <div class="vp-quote">"The portability feature — preferences that travel across brands — is the core differentiator." <span style="color:var(--text-dim);font-style:normal">— Patrick Hanash, CFO Cedar Capital</span></div>
+    </div>
+
+    <!-- VALUE PROPOSITION -->
+    <div class="vp-card vp-center-card" id="vp-teams">
+      <div class="vp-stayo-badge">◈ STAYO</div>
+      <div class="vp-header" style="margin-top:20px">
+        <div class="vp-icon-wrap" style="background:rgba(12,59,46,0.5);border-color:rgba(201,169,110,0.4)">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <rect x="3" y="7" width="22" height="16" rx="3" stroke="#C9A96E" stroke-width="1.2"/>
+            <path d="M9 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2" stroke="#C9A96E" stroke-width="1.2"/>
+            <path d="M9 15h10M9 19h6" stroke="#C9A96E" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="vp-for" style="color:#C9A96E">For Hotel Teams</div>
+          <h3 class="vp-title">Operational Clarity</h3>
+        </div>
+      </div>
+      <div class="vp-items">
+        <div class="vp-item"><div class="vp-bullet" style="background:#C9A96E"></div><div><strong>Trusted context</strong> — know the guest before they arrive</div></div>
+        <div class="vp-item"><div class="vp-bullet" style="background:#C9A96E"></div><div><strong>Less guesswork</strong> — structured intelligence, not gut feel</div></div>
+        <div class="vp-item"><div class="vp-bullet" style="background:#C9A96E"></div><div><strong>Confident delivery</strong> — every department aligned</div></div>
+        <div class="vp-item"><div class="vp-bullet" style="background:#C9A96E"></div><div><strong>Role-adapted briefings</strong> — right info to the right team</div></div>
+      </div>
+      <div class="vp-quote">"I need better information arriving earlier. That's exactly what STAYO does." <span style="color:var(--text-dim);font-style:normal">— Traci Bush, W Algarve Hotel &amp; Residences</span></div>
+    </div>
+
+    <!-- FOR BRANDS -->
+    <div class="vp-card" id="vp-brands">
+      <div class="vp-header">
+        <div class="vp-icon-wrap" style="background:rgba(201,169,110,0.08);border-color:rgba(201,169,110,0.2)">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <path d="M14 3l2.8 8.6H24l-7 5.1 2.7 8.3L14 20l-5.7 5 2.7-8.3-7-5.1h7.2z" stroke="#C9A96E" stroke-width="1.2" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="vp-for">For Brands</div>
+          <h3 class="vp-title">Loyalty That Compounds</h3>
+        </div>
+      </div>
+      <div class="vp-items">
+        <div class="vp-item"><div class="vp-bullet"></div><div><strong>Continuity across properties</strong> — memory travels with the guest</div></div>
+        <div class="vp-item"><div class="vp-bullet"></div><div><strong>Recognition as a differentiator</strong> — independent hotels match chain-level CRM</div></div>
+        <div class="vp-item"><div class="vp-bullet"></div><div><strong>Loyalty that compounds</strong> — each stay deepens the relationship</div></div>
+        <div class="vp-item"><div class="vp-bullet"></div><div><strong>Revenue through retention</strong> — guest lifetime value, measurably improved</div></div>
+      </div>
+      <div class="vp-quote">"Boutique hotels can match chain CRM sophistication while retaining authentic hospitality — unbeatable." <span style="color:var(--text-dim);font-style:normal">— Carine Herau, Podere Anthaia</span></div>
+    </div>
+  </div>
+
+  <!-- Bottom tagline -->
+  <div class="reveal reveal-delay-3" style="text-align:center;margin-top:60px;padding-top:60px;border-top:1px solid rgba(201,169,110,0.1)">
+    <p style="font-family:'Cormorant Garamond',serif;font-size:clamp(22px,3vw,34px);font-weight:300;color:var(--cream);font-style:italic;max-width:700px;margin:0 auto;line-height:1.4">"Personalization that isn't extractive or superficial — but shared infrastructure that aligns guests, teams, and brands around a better experience."</p>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- JOURNEY TIMELINE -->
+<section id="journey-timeline" style="padding:120px 60px;max-width:1200px;margin:0 auto;overflow:hidden">
+  <div class="reveal" style="text-align:center;margin-bottom:72px">
+    <div class="section-label" style="justify-content:center">Memory in Motion</div>
+    <h2 class="section-title" style="text-align:center">One Guest.<br><em>A Thread That Never Breaks.</em></h2>
+    <p class="section-body" style="margin:0 auto;text-align:center;max-width:520px">This is what a guest journey looks like with STAYO — not a series of disconnected stays, but a single compounding thread of memory.</p>
+  </div>
+
+  <div class="timeline-container reveal reveal-delay-1">
+    <!-- The memory thread line -->
+    <div class="timeline-line">
+      <div class="timeline-line-track"></div>
+      <div class="timeline-line-fill" id="timelineFill"></div>
+    </div>
+
+    <!-- Timeline nodes -->
+    <div class="timeline-nodes">
+      <div class="timeline-node" data-stay="1">
+        <div class="tn-dot"></div>
+        <div class="tn-card tn-card--above">
+          <div class="tn-year">2021</div>
+          <div class="tn-property">Hotel de Crillon</div>
+          <div class="tn-city">Paris, France</div>
+          <div class="tn-prefs-count"><span class="tn-count">2</span> preferences stored</div>
+          <div class="tn-tags">
+            <span class="tn-tag">High floor</span>
+            <span class="tn-tag">No fragrance</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="timeline-node" data-stay="2">
+        <div class="tn-dot"></div>
+        <div class="tn-card tn-card--below">
+          <div class="tn-year">2022</div>
+          <div class="tn-property">Bulgari Hotel</div>
+          <div class="tn-city">Milan, Italy</div>
+          <div class="tn-prefs-count"><span class="tn-count">5</span> preferences stored</div>
+          <div class="tn-tags">
+            <span class="tn-tag">Plant-based</span>
+            <span class="tn-tag">Firm pillows</span>
+            <span class="tn-tag">+3 more</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="timeline-node timeline-node--passport" data-stay="3">
+        <div class="tn-dot tn-dot--passport"></div>
+        <div class="tn-card tn-card--above tn-card--passport">
+          <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:#C9A96E;margin-bottom:8px">◈ Passport Active</div>
+          <div class="tn-property" style="color:var(--cream)">James Harrington</div>
+          <div class="tn-city" style="color:var(--gold)">Preference Passport</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:10px;justify-content:center">
+            <span class="tn-tag" style="border-color:rgba(201,169,110,0.4)">High floor</span>
+            <span class="tn-tag" style="border-color:rgba(201,169,110,0.4)">No fragrance</span>
+            <span class="tn-tag" style="border-color:rgba(201,169,110,0.4)">Plant-based</span>
+            <span class="tn-tag" style="border-color:rgba(201,169,110,0.4)">Firm pillows</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="timeline-node" data-stay="4">
+        <div class="tn-dot"></div>
+        <div class="tn-card tn-card--below">
+          <div class="tn-year">2023</div>
+          <div class="tn-property">Aman</div>
+          <div class="tn-city">Tokyo, Japan</div>
+          <div class="tn-prefs-count"><span class="tn-count">9</span> preferences stored</div>
+          <div class="tn-tags">
+            <span class="tn-tag">Early gym</span>
+            <span class="tn-tag">Double espresso</span>
+            <span class="tn-tag">+6 more</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="timeline-node" data-stay="5">
+        <div class="tn-dot"></div>
+        <div class="tn-card tn-card--above">
+          <div class="tn-year">2025</div>
+          <div class="tn-property">Four Seasons</div>
+          <div class="tn-city">London, UK</div>
+          <div class="tn-prefs-count"><span class="tn-count">14</span> preferences stored</div>
+          <div class="tn-tags">
+            <span class="tn-tag">Theatre tickets</span>
+            <span class="tn-tag">Late checkout</span>
+            <span class="tn-tag">+11 more</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="timeline-caption">
+      <span>Memory compounds. Every stay adds a layer. The guest never repeats themselves again.</span>
+    </div>
+  </div>
+</section>
+
+
+
+
+<section id="how"
+>
+  <div class="reveal">
+    <div class="section-label">Process</div>
+    <h2 class="section-title">How <em>It Works</em></h2>
+  </div>
+
+  <div class="steps-grid">
+    <div class="step-card reveal">
+      <span class="step-number">01</span>
+      <span class="step-icon"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="11" r="5" stroke="#C9A96E" stroke-width="1.2"/><path d="M6 28c0-5.52 4.48-10 10-10s10 4.48 10 10" stroke="#C9A96E" stroke-width="1.2" stroke-linecap="round"/></svg></span>
+      <h3 class="step-title">Guest Profile Created</h3>
+      <p class="step-desc">Guests build their Preference Passport — room setup, dining preferences, wellness rituals, lifestyle context — guided by an AI concierge that learns and refines over time. They own it entirely.</p>
+    </div>
+    <div class="step-card reveal reveal-delay-1">
+      <span class="step-number">02</span>
+      <span class="step-icon"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M4 18l4-4 4 2 8-10 2 2-6 12 4 2-1 3-6-2-2 4-3-1 1-4-5-2z" stroke="#C9A96E" stroke-width="1.2" stroke-linejoin="round"/></svg></span>
+      <h3 class="step-title">Profile Travels With Guest</h3>
+      <p class="step-desc">When a reservation is made at a STAYO-connected property, the guest grants time-bound permission. Their preference context is securely transmitted — no repetition, no friction.</p>
+    </div>
+    <div class="step-card reveal reveal-delay-2">
+      <span class="step-number">03</span>
+      <span class="step-icon"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="12" stroke="#C9A96E" stroke-width="1.2"/><circle cx="16" cy="16" r="7" stroke="#C9A96E" stroke-width="1.2"/><circle cx="16" cy="16" r="2.5" fill="#C9A96E"/></svg></span>
+      <h3 class="step-title">Hotels Receive Intelligence</h3>
+      <p class="step-desc">Each department — front desk, F&amp;B, housekeeping, concierge — receives role-adapted insight before the guest arrives. Teams coordinate with clarity. Service becomes anticipatory.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+<div class="divider"></div>
+
+<!-- MEMORY BUILDS OVER TIME -->
+<section id="memory-builds" style="padding:120px 0;max-width:100%;background:linear-gradient(180deg,transparent,rgba(12,59,46,0.08),transparent)">
+  <div style="max-width:1200px;margin:0 auto;padding:0 60px">
+    <div class="reveal" style="text-align:center;margin-bottom:72px">
+      <div class="section-label" style="justify-content:center">Memory Intelligence</div>
+      <h2 class="section-title" style="text-align:center">The Passport That<br><em>Grows With You</em></h2>
+      <p class="section-body" style="margin:0 auto;text-align:center;max-width:500px">Unlike a static profile, the STAYO Passport compounds. Each stay adds precision, depth, and nuance — until service feels genuinely anticipatory.</p>
+    </div>
+
+    <div class="memory-stages reveal reveal-delay-1">
+      <div class="ms-stage" id="ms-1">
+        <div class="ms-header">
+          <div class="ms-stay-label">Stay 1</div>
+          <div class="ms-property">Rosewood · Paris</div>
+        </div>
+        <div class="ms-passport">
+          <div class="ms-passport-inner">
+            <div class="ms-pref-row active"><div class="ms-pref-dot"></div><span>High floor preference</span></div>
+            <div class="ms-pref-row active"><div class="ms-pref-dot"></div><span>No fragrance products</span></div>
+            <div class="ms-pref-row empty"><div class="ms-pref-dot ms-pref-dot--empty"></div><span class="ms-empty-text">Dining preferences — unknown</span></div>
+            <div class="ms-pref-row empty"><div class="ms-pref-dot ms-pref-dot--empty"></div><span class="ms-empty-text">Wellness routines — unknown</span></div>
+            <div class="ms-pref-row empty"><div class="ms-pref-dot ms-pref-dot--empty"></div><span class="ms-empty-text">Sleep preferences — unknown</span></div>
+          </div>
+          <div class="ms-score">
+            <div class="ms-score-bar" style="--fill:18%"></div>
+            <div class="ms-score-label">Profile depth: 18%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ms-arrow">→</div>
+
+      <div class="ms-stage" id="ms-3">
+        <div class="ms-header">
+          <div class="ms-stay-label">Stay 3</div>
+          <div class="ms-property">Bulgari · Milan</div>
+        </div>
+        <div class="ms-passport">
+          <div class="ms-passport-inner">
+            <div class="ms-pref-row active"><div class="ms-pref-dot"></div><span>High floor preference</span></div>
+            <div class="ms-pref-row active"><div class="ms-pref-dot"></div><span>No fragrance products</span></div>
+            <div class="ms-pref-row active"><div class="ms-pref-dot"></div><span>Plant-based dining</span></div>
+            <div class="ms-pref-row active"><div class="ms-pref-dot"></div><span>Firm pillows only</span></div>
+            <div class="ms-pref-row empty"><div class="ms-pref-dot ms-pref-dot--empty"></div><span class="ms-empty-text">Wellness — building...</span></div>
+          </div>
+          <div class="ms-score">
+            <div class="ms-score-bar" style="--fill:52%"></div>
+            <div class="ms-score-label">Profile depth: 52%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ms-arrow">→</div>
+
+      <div class="ms-stage ms-stage--full" id="ms-6">
+        <div class="ms-header">
+          <div class="ms-stay-label">Stay 6+</div>
+          <div class="ms-property">Four Seasons · London</div>
+        </div>
+        <div class="ms-passport">
+          <div class="ms-passport-inner">
+            <div class="ms-pref-row active"><div class="ms-pref-dot"></div><span>High floor · city view</span></div>
+            <div class="ms-pref-row active"><div class="ms-pref-dot"></div><span>No fragrance — allergic</span></div>
+            <div class="ms-pref-row active"><div class="ms-pref-dot"></div><span>Plant-based · no nuts</span></div>
+            <div class="ms-pref-row active"><div class="ms-pref-dot"></div><span>Espresso 7am · FT digital</span></div>
+            <div class="ms-pref-row active"><div class="ms-pref-dot"></div><span>Gym 6am · late checkout</span></div>
+          </div>
+          <div class="ms-score">
+            <div class="ms-score-bar" style="--fill:94%"></div>
+            <div class="ms-score-label">Profile depth: 94%</div>
+          </div>
+        </div>
+        <div class="ms-full-badge">Full Passport Active</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+
+<section id="features"
+>
+  <div class="features-header">
+    <div class="reveal">
+      <div class="section-label">Product</div>
+      <h2 class="section-title">Built for<br><em>Exceptional</em><br>Hospitality</h2>
+    </div>
+    <div class="reveal reveal-delay-1">
+      <p class="section-body">Every feature is designed to elevate service — reducing friction for teams while deepening recognition for guests. Hover any card to learn more.</p>
+    </div>
+  </div>
+
+  <div class="features-grid reveal reveal-delay-2">
+    <div class="feature-card" data-detail="A portable, guest-owned digital profile capturing dining preferences, room setup, wellness routines, lifestyle context, and meaningful personal details — structured and accessible across every stay.">
+      <span class="feature-icon"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M10 4L4 7v17l6-3 8 3 6-3V4l-6 3-8-3z" stroke="#C9A96E" stroke-width="1.2" stroke-linejoin="round"/><path d="M10 4v17M18 7v17" stroke="#C9A96E" stroke-width="1.2"/></svg></span>
+      <div class="feature-title">Guest Preference Passport</div>
+      <div class="feature-sub">Portable, guest-owned, AI-enriched profile</div>
+    </div>
+    <div class="feature-card" data-detail="A single source of truth shared across departments. Front desk, F&amp;B, housekeeping, and concierge all work from the same guest understanding — eliminating silos and internal misalignment.">
+      <span class="feature-icon"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M11 17l6-6" stroke="#C9A96E" stroke-width="1.2" stroke-linecap="round"/><path d="M8 14l-2 2a4.24 4.24 0 0 0 6 6l2-2M20 14l2-2a4.24 4.24 0 0 0-6-6l-2 2" stroke="#C9A96E" stroke-width="1.4" stroke-linecap="round"/></svg></span>
+      <div class="feature-title">Cross-Department Visibility</div>
+      <div class="feature-sub">Unified context across all hotel teams</div>
+    </div>
+    <div class="feature-card" data-detail="Before the guest arrives, every relevant department receives a structured briefing tailored to their role. Rooms are prepared. Dietary needs are flagged. The welcome is already thoughtful before anyone checks in.">
+      <span class="feature-icon"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M15 3L6 16h9l-2 9 11-13h-9l2-9z" stroke="#C9A96E" stroke-width="1.2" stroke-linejoin="round"/></svg></span>
+      <div class="feature-title">Pre-Arrival Intelligence</div>
+      <div class="feature-sub">Role-adapted briefings before every stay</div>
+    </div>
+    <div class="feature-card" data-detail="Guests explicitly approve what is shared, with whom, and for how long. Permission is time-bound to the stay. Access expires at checkout. No data lingers. Full GDPR-compliant architecture.">
+      <span class="feature-icon"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect x="5" y="12" width="18" height="13" rx="3" stroke="#C9A96E" stroke-width="1.2"/><path d="M9 12V9a5 5 0 0 1 10 0v3" stroke="#C9A96E" stroke-width="1.2" stroke-linecap="round"/><circle cx="14" cy="18.5" r="1.5" fill="#C9A96E"/></svg></span>
+      <div class="feature-title">Consent &amp; Privacy Controls</div>
+      <div class="feature-sub">Guest-owned, time-bound, GDPR-compliant</div>
+    </div>
+    <div class="feature-card" data-detail="STAYO sits alongside existing PMS, CRM, and concierge tools — not replacing them. Lightweight API integration means deployment in days, not months, with zero disruption to existing workflows.">
+      <span class="feature-icon"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M14 20v4M10 20h8a2 2 0 0 0 2-2v-3H8v3a2 2 0 0 0 2 2z" stroke="#C9A96E" stroke-width="1.2" stroke-linecap="round"/><path d="M10 15V8M18 15V8" stroke="#C9A96E" stroke-width="1.2" stroke-linecap="round"/><path d="M7 8h14" stroke="#C9A96E" stroke-width="1.2" stroke-linecap="round"/></svg></span>
+      <div class="feature-title">Lightweight Integration</div>
+      <div class="feature-sub">Sits alongside PMS, CRM, and ops tools</div>
+    </div>
+    <div class="feature-card" data-detail="From pre-arrival briefings to in-stay updates, STAYO structures guest intelligence into operational workflows — reducing guesswork, improving coordination, and freeing staff to focus on what matters most.">
+      <span class="feature-icon"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="4" stroke="#C9A96E" stroke-width="1.2"/><path d="M14 4v3M14 21v3M4 14h3M21 14h3M6.93 6.93l2.12 2.12M18.95 18.95l2.12 2.12M6.93 21.07l2.12-2.12M18.95 9.05l2.12-2.12" stroke="#C9A96E" stroke-width="1.2" stroke-linecap="round"/></svg></span>
+      <div class="feature-title">Operational Workflow Layer</div>
+      <div class="feature-sub">Intelligence delivered at the moment of service</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+
+<section id="benefits"
+ class="full-width" style="padding:100px 0">
+  <div class="metrics-inner">
+    <div class="reveal" style="padding:0 60px">
+      <div class="section-label">Why Now</div>
+      <h2 class="section-title">Personalization is<br><em>The New Loyalty</em></h2>
+    </div>
+    <div class="metrics-grid reveal reveal-delay-1">
+      <div class="metric-card">
+        <div class="metric-num">71%</div>
+        <div class="metric-label">of luxury travelers more loyal<br>when preferences are remembered</div>
+        <div class="metric-source">Source: Skift Research, 2024</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-num">4.2×</div>
+        <div class="metric-label">revenue lift from personalized<br>hospitality experiences</div>
+        <div class="metric-source">Source: McKinsey &amp; Co., 2023</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-num">$4B</div>
+        <div class="metric-label">total addressable market<br>in global luxury hospitality</div>
+        <div class="metric-source">Based on ~243K luxury properties</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-num">88%</div>
+        <div class="metric-label">of GMs say guest data is<br>fragmented across systems</div>
+        <div class="metric-source">Source: Cornell Hospitality, 2024</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- AI PASSPORT BUILDER -->
+<section id="passport-builder" style="padding:120px 60px;max-width:1200px;margin:0 auto">
+  <div class="reveal" style="text-align:center;margin-bottom:72px">
+    <div class="section-label" style="justify-content:center">Try It Now</div>
+    <h2 class="section-title" style="text-align:center">Build Your<br><em>Preference Passport</em></h2>
+    <p class="section-body" style="margin:0 auto;text-align:center;max-width:480px">Have a conversation with our AI concierge. Tell it how you like to travel — and watch your Passport take shape in real time.</p>
+  </div>
+
+  <div class="passport-builder-grid reveal reveal-delay-1">
+    <!-- Chat Interface -->
+    <div class="pb-chat">
+      <div class="pb-chat-header">
+        <div class="pb-chat-dot" style="background:#C9A96E"></div>
+        <div class="pb-chat-title">STAYO AI Concierge</div>
+        <div class="pb-chat-status">● Online</div>
+      </div>
+      <div class="pb-messages" id="pbMessages">
+        <div class="pb-msg pb-msg--ai">
+          <div class="pb-msg-bubble">Welcome. I'm building your Preference Passport. Tell me — how do you like your room when you check in? Think about floor, temperature, lighting, scent...</div>
+        </div>
+      </div>
+      <div class="pb-input-row">
+        <input type="text" class="pb-input" id="pbInput" placeholder="Describe your preferences..." maxlength="200">
+        <button class="pb-send" id="pbSend" onclick="sendPassportMessage()">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 9h14M9 2l7 7-7 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Live Passport Preview -->
+    <div class="pb-passport" id="pbPassport">
+      <div class="pb-passport-header">
+        <div class="pb-passport-logo">◈ STAYO</div>
+        <div class="pb-passport-title">Preference Passport</div>
+        <div class="pb-passport-status" id="pbStatus">Building...</div>
+      </div>
+      <div class="pb-passport-avatar" id="pbAvatar">
+        <div class="pb-avatar-circle">?</div>
+        <div class="pb-avatar-name" id="pbName">Your Passport</div>
+      </div>
+      <div class="pb-passport-prefs" id="pbPrefs">
+        <div class="pb-pref-empty">Your preferences will appear here as you chat...</div>
+      </div>
+      <div class="pb-passport-footer">
+        <div class="pb-footer-item">Guest-owned · Time-bound · GDPR compliant</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+
+<section id="product-preview"
+>
+  <div class="reveal">
+    <div class="section-label" style="justify-content:center">Product Preview</div>
+    <h2 class="section-title" style="text-align:center">Intelligence at the<br><em>Point of Service</em></h2>
+    <p class="section-body" style="margin:0 auto;text-align:center">A glimpse of the hotel-facing dashboard — role-adapted, clean, and designed to surface what matters at the moment it matters.</p>
+  </div>
+
+  <div class="dashboard-mock reveal reveal-delay-1">
+    <div class="dash-topbar">
+      <div class="dash-dot" style="background:#ff5f57"></div>
+      <div class="dash-dot" style="background:#febc2e"></div>
+      <div class="dash-dot" style="background:#28c840"></div>
+      <span class="dash-title">STAYO · Hotel Dashboard · Pre-Arrival View</span>
+    </div>
+    <div class="dash-body">
+      <div class="dash-sidebar">
+        <div class="dash-sidebar-label">Navigation</div>
+        <div class="dash-nav-item active"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0"><circle cx="7" cy="5" r="2.5" stroke="currentColor" stroke-width="1"/><path d="M2 12c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg> Guest Profiles</div>
+        <div class="dash-nav-item"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0"><rect x="1" y="2" width="12" height="11" rx="2" stroke="currentColor" stroke-width="1"/><path d="M4 1v2M10 1v2M1 6h12" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg> Arrivals Today</div>
+        <div class="dash-nav-item"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0"><path d="M5 2v4a2 2 0 0 1-2 2v4M9 2v10M11 2c0 2-1 3-2 3" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg> F&amp;B Briefings</div>
+        <div class="dash-nav-item"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0"><path d="M1 8V5a1 1 0 0 1 1-1h4V3H1M1 8h12M1 8v3M13 8v3" stroke="currentColor" stroke-width="1" stroke-linecap="round"/><rect x="7" y="4" width="6" height="4" rx="1" stroke="currentColor" stroke-width="1"/></svg> Housekeeping</div>
+        <div class="dash-nav-item"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0"><circle cx="7" cy="3" r="1.5" stroke="currentColor" stroke-width="1"/><path d="M4 7c0-1.66 1.34-3 3-3s3 1.34 3 3M7 7v5M4 9l3-2 3 2" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg> Wellness</div>
+        <div class="dash-nav-item"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0"><circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1"/><path d="M7 1v2M7 11v2M1 7h2M11 7h2M2.93 2.93l1.41 1.41M9.66 9.66l1.41 1.41M2.93 11.07l1.41-1.41M9.66 4.34l1.41-1.41" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg> Settings</div>
+      </div>
+      <div class="dash-main">
+        <div class="dash-guest-header">
+          <div class="dash-avatar">J</div>
+          <div>
+            <div class="dash-guest-name">James Harrington</div>
+            <div class="dash-guest-meta">Check-in: Today · 14:00 · Suite 1402 · 4 nights · Returning guest (6 stays)</div>
+          </div>
+          <div class="dash-badge">● Profile Active</div>
+        </div>
+        <div class="dash-sections">
+          <div class="dash-card">
+            <div class="dash-card-title">Room Preferences</div>
+            <div class="pref-row"><span class="pref-key">Floor</span><span class="pref-val">High floor, min 12th</span></div>
+            <div class="pref-row"><span class="pref-key">Temperature</span><span class="pref-val">19°C overnight</span></div>
+            <div class="pref-row"><span class="pref-key">Pillows</span><span class="pref-val">Firm, extra set</span></div>
+            <div class="pref-row"><span class="pref-key">Fragrance</span><span class="pref-val">⚠️ None — allergic</span></div>
+            <div class="pref-row"><span class="pref-key">Minibar</span><span class="pref-val">Remove — replace with sparkling water</span></div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-title">Dining &amp; Wellness</div>
+            <div class="pref-row"><span class="pref-key">Diet</span><span class="pref-val">Plant-based, no nuts</span></div>
+            <div class="pref-row"><span class="pref-key">Coffee</span><span class="pref-val">Double espresso, 7am</span></div>
+            <div class="pref-row"><span class="pref-key">Gym</span><span class="pref-val">Early access (6am)</span></div>
+            <div class="pref-row"><span class="pref-key">Newspapers</span><span class="pref-val">FT + WSJ (digital)</span></div>
+            <div class="pref-row"><span class="pref-key">Late checkout</span><span class="pref-val">Requested — 14:00</span></div>
+          </div>
+          <div class="dash-card" style="grid-column:1/-1">
+            <div class="dash-card-title">Department Alerts</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">
+              <span class="dept-chip" style="background:rgba(201,169,110,0.15);color:var(--gold-light);border:1px solid rgba(201,169,110,0.2)"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="flex-shrink:0"><circle cx="6.5" cy="5" r="3.5" stroke="currentColor" stroke-width="1"/><path d="M3 9.5h7M6.5 9v1.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg> Concierge: Theatre tickets requested</span>
+              <span class="dept-chip" style="background:rgba(12,59,46,0.4);color:#7ee8a2;border:1px solid rgba(126,232,162,0.2)"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="flex-shrink:0"><path d="M1.5 7.5V5.5a.8.8 0 0 1 .8-.8h3V4H1.5M1.5 7.5h10M1.5 7.5V10M11.5 7.5V10" stroke="currentColor" stroke-width="1" stroke-linecap="round"/><rect x="5.5" y="4.7" width="6" height="3" rx=".8" stroke="currentColor" stroke-width="1"/></svg> Housekeeping: No fragrance products</span>
+              <span class="dept-chip" style="background:rgba(12,59,46,0.4);color:#7ee8a2;border:1px solid rgba(126,232,162,0.2)"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="flex-shrink:0"><path d="M4.5 1.5v4a2 2 0 0 1-2 2M4.5 1.5v10M9 1.5v10M10.5 1.5c0 2-1 3-1.5 3" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg> F&amp;B: Plant-based breakfast pre-arranged</span>
+              <span class="dept-chip" style="background:rgba(201,169,110,0.15);color:var(--gold-light);border:1px solid rgba(201,169,110,0.2)"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="flex-shrink:0"><circle cx="6.5" cy="3" r="1.5" stroke="currentColor" stroke-width="1"/><path d="M3.5 7c0-1.66 1.34-3 3-3s3 1.34 3 3M6.5 7v4M4.5 9l2-1.5 2 1.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg> Wellness: Gym access card prepared</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+
+<section id="trust"
+>
+  <div class="reveal" style="text-align:center;max-width:600px;margin:0 auto">
+    <div class="section-label" style="justify-content:center">Industry Context</div>
+    <h2 class="section-title" style="text-align:center">The Infrastructure<br>Hospitality <em>Needs</em></h2>
+  </div>
+
+  <div class="trust-grid reveal reveal-delay-1">
+    <div class="trust-card">
+      <div class="trust-stat">£730M</div>
+      <div class="trust-text">Serviceable addressable market across luxury and boutique hotels in Europe and the UK — STAYO's initial deployment focus.</div>
+    </div>
+    <div class="trust-card">
+      <div class="trust-stat">46K</div>
+      <div class="trust-text">Luxury and premium hotel properties in the UK and Europe — the first geographic market where we are actively building partnerships.</div>
+    </div>
+    <div class="trust-card">
+      <div class="trust-stat">3%</div>
+      <div class="trust-text">Conservative target market share by Year 5 — representing ~1,400 properties and approximately £22M in annual recurring revenue.</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+
+<section id="privacy"
+>
+  <div class="reveal">
+    <div class="section-label">Privacy &amp; Trust</div>
+    <h2 class="section-title">Guest-Owned.<br><em>Permissioned.</em><br>Transparent.</h2>
+    <p class="section-body">Trust is the foundation of STAYO. Guests retain absolute control over their data. Hotels access context only when it's needed — and only for as long as the stay lasts.</p>
+
+    <div class="privacy-pillars">
+      <div class="privacy-pillar">
+        <div class="pillar-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="7" cy="8" r="4" stroke="#C9A96E" stroke-width="1.2"/><path d="M10 11l6 5M13 13l2 2" stroke="#C9A96E" stroke-width="1.2" stroke-linecap="round"/></svg></div>
+        <div class="pillar-text">
+          <h4>Guest-Owned Architecture</h4>
+          <p>Preference profiles belong to the guest. No hotel can retain, transfer, or commercialise guest data. It remains portable and deletable.</p>
+        </div>
+      </div>
+      <div class="privacy-pillar">
+        <div class="pillar-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="10" r="6" stroke="#C9A96E" stroke-width="1.2"/><path d="M9 7v3.5l2.5 1.5" stroke="#C9A96E" stroke-width="1.2" stroke-linecap="round"/><path d="M7 2h4" stroke="#C9A96E" stroke-width="1.2" stroke-linecap="round"/></svg></div>
+        <div class="pillar-text">
+          <h4>Time-Bound Access</h4>
+          <p>Hotel access to guest profiles is strictly scoped to the duration of the stay. At checkout, access expires automatically.</p>
+        </div>
+      </div>
+      <div class="privacy-pillar">
+        <div class="pillar-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="#C9A96E" stroke-width="1.2"/><path d="M5.5 9l2.5 2.5 4.5-4.5" stroke="#C9A96E" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="pillar-text">
+          <h4>Explicit Consent Model</h4>
+          <p>Guests actively approve each property before arrival. No passive data sharing. No opaque profiling. Fully GDPR-compliant.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="privacy-visual reveal reveal-delay-2">
+    <div class="permission-card">
+      <div class="permission-title">Guest Privacy Dashboard</div>
+      <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.06)">
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:4px">Active permission</div>
+        <div style="font-size:16px;font-family:'Cormorant Garamond',serif;color:var(--cream)">Rosewood London</div>
+        <div style="font-size:11px;color:var(--gold)">Access expires: 18 Mar 2026 · 12:00 checkout</div>
+      </div>
+      <div class="perm-row">
+        <span class="perm-label">Room Preferences</span>
+        <div class="toggle on"></div>
+      </div>
+      <div class="perm-row">
+        <span class="perm-label">Dining &amp; Dietary</span>
+        <div class="toggle on"></div>
+      </div>
+      <div class="perm-row">
+        <span class="perm-label">Wellness Preferences</span>
+        <div class="toggle on"></div>
+      </div>
+      <div class="perm-row">
+        <span class="perm-label">Lifestyle Context</span>
+        <div class="toggle"></div>
+      </div>
+      <div class="perm-row">
+        <span class="perm-label">Historical Stay Notes</span>
+        <div class="toggle"></div>
+      </div>
+      <div style="margin-top:16px;padding:12px;background:rgba(12,59,46,0.3);border-radius:6px;border:1px solid rgba(126,232,162,0.1)">
+        <div style="font-size:11px;color:rgba(126,232,162,0.7);letter-spacing:0.1em;text-transform:uppercase">Your data, your rules</div>
+        <div style="font-size:12px;color:var(--text-dim);margin-top:4px;line-height:1.5">You can revoke access at any time. No data is retained after checkout.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+
+<section id="team"
+>
+  <div class="reveal">
+    <div class="section-label" style="justify-content:center">The Team</div>
+    <h2 class="section-title" style="text-align:center">Built by Someone Who<br><em>Cares Deeply</em></h2>
+    <p class="section-body" style="margin:0 auto;text-align:center">STAYO is early-stage and founder-led. The platform is being built with conviction, discipline, and a long-term perspective on what hospitality infrastructure should look like.</p>
+  </div>
+
+  <div class="team-single reveal reveal-delay-1">
+    <div class="team-avatar"><img src="data:image/jpeg;base64,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" alt="Jassim Al-Thani" /></div>
+    <div class="team-name">Jassim Al-Thani</div>
+    <div class="team-role">Founder &amp; Chief Strategy Officer</div>
+    <p class="team-bio">Leads STAYO's strategic vision, growth, and partnerships. Works at the intersection of luxury hospitality, technology, and relationship-led business design — building high-impact partnerships and positioning STAYO for long-term category leadership.</p>
+    <div class="team-tags">
+      <span class="team-tag">Strategic Growth</span>
+      <span class="team-tag">Hospitality</span>
+      <span class="team-tag">Partnerships</span>
+      <span class="team-tag">Luxury</span>
+    </div>
+  </div>
+
+  <div class="reveal reveal-delay-2" style="margin-top:80px;padding:40px;border:1px solid rgba(201,169,110,0.1);border-radius:12px;max-width:600px;margin:80px auto 0;text-align:center">
+    <div style="font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);margin-bottom:16px">Growing the Team</div>
+    <p style="font-size:15px;font-weight:300;color:var(--text-mid);line-height:1.7">STAYO is actively building its founding team — seeking exceptional people with backgrounds in hospitality technology, product, and enterprise sales. If you believe hospitality deserves better infrastructure, we'd like to meet you.</p>
+    <a href="mailto:jcoozellc@gmail.com" style="display:inline-block;margin-top:24px;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold);text-decoration:none;border-bottom:1px solid rgba(201,169,110,0.3);padding-bottom:4px" data-email="jcoozellc@gmail.com">Get in touch →</a>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+
+<section id="cta"
+>
+  <div class="reveal">
+    <div class="urgency-badge">
+      <span class="urgency-dot"></span>
+      Now accepting 5 pilot hotels · Spring 2026
+    </div>
+    <h2 class="cta-title">Give Hospitality<br>a <em>Memory.</em></h2>
+    <p class="cta-sub">Join the first wave of hotels building genuine guest continuity. STAYO is now accepting pilot partners across Europe and the UK.</p>
+    <div class="hero-btns" style="justify-content:center">
+      <a href="mailto:jcoozellc@gmail.com" class="btn-primary" data-email="jcoozellc@gmail.com">Request a Demo</a>
+      <a href="mailto:jcoozellc@gmail.com" class="btn-ghost" data-email="jcoozellc@gmail.com">Partner With Us</a>
+    </div>
+    <div style="margin-top:48px;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dim)">
+      Pre-Seed · Europe &amp; UK · Luxury Hospitality
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+
+<footer>
+  <div class="footer-brand">
+    <span class="footer-logo">STAYO</span>
+    <p class="footer-tagline">The memory layer for premium hospitality. Guest preferences, portable and permissioned.</p>
+    <div style="margin-top:24px;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold)">London · Paris · Madrid</div>
+  </div>
+  <div class="footer-col">
+    <h5>Product</h5>
+    <ul>
+      <li><a href="#how">How It Works</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#product-preview">Dashboard</a></li>
+      <li><a href="#privacy">Privacy</a></li>
+    </ul>
+  </div>
+  <div class="footer-col">
+    <h5>Company</h5>
+    <ul>
+      <li><a href="#team">Team</a></li>
+      <li><a href="mailto:jcoozellc@gmail.com" data-email="jcoozellc@gmail.com">Contact</a></li>
+      <li><a href="mailto:jcoozellc@gmail.com" data-email="jcoozellc@gmail.com">Partnerships</a></li>
+      <li><a href="mailto:jcoozellc@gmail.com" data-email="jcoozellc@gmail.com">Press</a></li>
+    </ul>
+  </div>
+  <div class="footer-col">
+    <h5>Get Started</h5>
+    <ul>
+      <li><a href="mailto:jcoozellc@gmail.com" data-email="jcoozellc@gmail.com">Request Demo</a></li>
+      <li><a href="mailto:jcoozellc@gmail.com" data-email="jcoozellc@gmail.com">Hotel Pilot</a></li>
+      <li><a href="mailto:jcoozellc@gmail.com" data-email="jcoozellc@gmail.com">Investor Enquiries</a></li>
+    </ul>
+  </div>
+</footer>
+
+<div class="footer-bottom">
+  <span class="footer-copy">© 2026 STAYO. All rights reserved.</span>
+  <span class="footer-copy">Privacy Policy · Terms</span>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ── CURSOR ──────────────────────────────────────────────────
+  var cursor = document.getElementById('custom-cursor');
+  if (cursor) {
+    document.addEventListener('mousemove', function(e) {
+      cursor.style.transform = 'translate(' + e.clientX + 'px,' + e.clientY + 'px)';
+    }, { passive: true });
+    document.querySelectorAll('a, button, .feature-card, .step-card, .vp-card, .tn-card, .ms-stage').forEach(function(el) {
+      el.addEventListener('mouseenter', function() { cursor.classList.add('hover'); });
+      el.addEventListener('mouseleave', function() { cursor.classList.remove('hover'); });
+    });
+  }
+
+  // ── UNIFIED SCROLL HANDLER ───────────────────────────────────
+  var mtFill = document.getElementById('mtFill');
+  var navbar = document.getElementById('navbar');
+  function onScroll() {
+    var s = window.scrollY;
+    if (navbar) navbar.classList.toggle('scrolled', s > 60);
+    if (mtFill) {
+      var dh = document.documentElement.scrollHeight - window.innerHeight;
+      mtFill.style.height = Math.min(100, (s / dh) * 100) + '%';
+    }
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  // ── HERO LINES ───────────────────────────────────────────────
+  var heroLines = document.getElementById('heroLines');
+  if (heroLines) {
+    for (var i = 0; i < 4; i++) {
+      var line = document.createElement('div');
+      line.className = 'hero-line';
+      line.style.left = (10 + i * 20) + '%';
+      line.style.height = (30 + Math.random() * 40) + '%';
+      line.style.top = (10 + Math.random() * 20) + '%';
+      line.style.animationDelay = (i * 1.2) + 's';
+      line.style.animationDuration = (7 + Math.random() * 3) + 's';
+      heroLines.appendChild(line);
+    }
+  }
+
+  // ── REVEAL ON SCROLL ─────────────────────────────────────────
+  var reveals = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window) {
+    var revealObs = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) e.target.classList.add('visible');
+      });
+    }, { threshold: 0.1 });
+    reveals.forEach(function(r) { revealObs.observe(r); });
+  } else {
+    reveals.forEach(function(r) { r.classList.add('visible'); });
+  }
+
+  // ── PRIVACY TOGGLES ──────────────────────────────────────────
+  document.querySelectorAll('.toggle').forEach(function(t) {
+    t.addEventListener('click', function() { t.classList.toggle('on'); });
+  });
+
+  // ── TIMELINE FILL ON SCROLL ──────────────────────────────────
+  if ('IntersectionObserver' in window) {
+    var timelineFillEl = document.getElementById('timelineFill');
+    if (timelineFillEl) {
+      var tlCont = document.querySelector('.timeline-container');
+      if (tlCont) {
+        new IntersectionObserver(function(entries) {
+          if (entries[0].isIntersecting) timelineFillEl.style.width = '100%';
+        }, { threshold: 0.3 }).observe(tlCont);
+      }
+    }
+    var jtProgressEl = document.getElementById('jtProgress');
+    if (jtProgressEl) {
+      var jtCont = document.querySelector('.journey-timeline');
+      if (jtCont) {
+        new IntersectionObserver(function(entries) {
+          if (entries[0].isIntersecting) jtProgressEl.style.width = '100%';
+        }, { threshold: 0.3 }).observe(jtCont);
+      }
+    }
+    // Metric numbers fade in
+    var metricsGrid = document.querySelector('.metrics-grid');
+    if (metricsGrid) {
+      new IntersectionObserver(function(entries) {
+        if (entries[0].isIntersecting) {
+          metricsGrid.querySelectorAll('.metric-num').forEach(function(el, i) {
+            setTimeout(function() {
+              el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+              el.style.opacity = '1';
+              el.style.transform = 'translateY(0)';
+            }, i * 150);
+          });
+        }
+      }, { threshold: 0.3 }).observe(metricsGrid);
+    }
+  }
+
+  // ── SCENE / VIDEO NAVIGATION ─────────────────────────────────
+  var currentScene = 0;
+  var totalScenes = 4;
+
+  function goScene(n) {
+    var scenes = document.querySelectorAll('.story-scene');
+    var tabs = document.querySelectorAll('.scene-tab');
+    var dots = document.querySelectorAll('.scene-dot');
+    scenes.forEach(function(s) { s.classList.remove('active'); });
+    tabs.forEach(function(t) { t.classList.remove('active'); });
+    dots.forEach(function(d) { d.classList.remove('active'); });
+    currentScene = n;
+    if (scenes[n]) scenes[n].classList.add('active');
+    if (tabs[n]) tabs[n].classList.add('active');
+    if (dots[n]) dots[n].classList.add('active');
+    var prog = document.getElementById('story-progress');
+    if (prog) prog.style.width = (((n + 1) / totalScenes) * 100) + '%';
+    // Dept animations for scene 2
+    if (n === 2) {
+      document.querySelectorAll('.dept-item').forEach(function(el, i) {
+        el.style.opacity = '0';
+        el.style.transform = 'translateX(-10px)';
+        el.classList.remove('activated');
+        setTimeout(function() {
+          el.style.animationDelay = (i * 0.18) + 's';
+          el.classList.add('activated');
+        }, 80);
+      });
+    }
+    var btnPrev = document.getElementById('btn-prev');
+    var btnNext = document.getElementById('btn-next');
+    if (btnPrev) btnPrev.style.opacity = n === 0 ? '0.3' : '1';
+    if (btnNext) {
+      if (n === totalScenes - 1) {
+        btnNext.textContent = 'Request Demo \u2192';
+        btnNext.onclick = function() {
+          var cta = document.getElementById('cta');
+          if (cta) cta.scrollIntoView({ behavior: 'smooth' });
+        };
+      } else {
+        btnNext.textContent = 'Next \u2192';
+        btnNext.onclick = nextScene;
+      }
+    }
+  }
+
+  function nextScene() {
+    goScene(currentScene < totalScenes - 1 ? currentScene + 1 : 0);
+  }
+
+  function prevScene() {
+    if (currentScene > 0) goScene(currentScene - 1);
+  }
+
+  // expose globally for onclick attributes
+  window.goScene = goScene;
+  window.nextScene = nextScene;
+  window.prevScene = prevScene;
+
+  // Auto-advance scenes
+  var autoPlay = setInterval(nextScene, 7000);
+  var storyContainer = document.getElementById('story-container');
+  if (storyContainer) {
+    storyContainer.addEventListener('mouseenter', function() { clearInterval(autoPlay); });
+    storyContainer.addEventListener('mouseleave', function() {
+      autoPlay = setInterval(nextScene, 7000);
+    });
+  }
+  goScene(0);
+
+  // ── AI PASSPORT BUILDER ───────────────────────────────────────
+  var pbMessages = document.getElementById('pbMessages');
+  var pbInput = document.getElementById('pbInput');
+  var pbSend = document.getElementById('pbSend');
+  var pbPrefs = document.getElementById('pbPrefs');
+  var pbStatus = document.getElementById('pbStatus');
+  var passportPrefs = [];
+  var convHistory = [];
+  var isThinking = false;
+  var prefsClearedOnce = false;
+
+  var SYSTEM_PROMPT = "You are STAYO's AI concierge — warm, elegant, precise. Help luxury hotel guests build their Preference Passport through conversation. Ask about: room setup (floor, temperature, pillows, fragrance), dining (dietary needs, breakfast, drinks), wellness (gym, spa), service style (privacy, checkout). After each response, extract 1-3 preferences at the END in this exact format: [PREFS: [\"pref one\", \"pref two\"]] Keep replies under 3 sentences. Be warm, never clinical.";
+
+  function sendPassportMessage() {
+    if (!pbInput || !pbMessages) return;
+    var text = pbInput.value.trim();
+    if (!text || isThinking) return;
+    isThinking = true;
+    if (pbSend) pbSend.disabled = true;
+    pbInput.value = '';
+    addPBMsg(text, 'user');
+    convHistory.push({ role: 'user', content: text });
+    var thinkEl = document.createElement('div');
+    thinkEl.className = 'pb-msg pb-msg--ai';
+    thinkEl.innerHTML = '<div class="pb-thinking"><div class="pb-thinking-dot"></div><div class="pb-thinking-dot"></div><div class="pb-thinking-dot"></div></div>';
+    pbMessages.appendChild(thinkEl);
+    pbMessages.scrollTop = pbMessages.scrollHeight;
+    fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 350,
+        system: SYSTEM_PROMPT,
+        messages: convHistory
+      })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      var fullText = (data.content && data.content[0]) ? data.content[0].text : "Tell me how you like your room when you arrive — floor, temperature, any sensitivities?";
+      var prefMatch = fullText.match(/\[PREFS:\s*(\[[\s\S]*?\])\]/);
+      var cleanText = fullText.replace(/\[PREFS:[\s\S]*?\]/g, '').trim();
+      if (prefMatch) {
+        try {
+          var newPrefs = JSON.parse(prefMatch[1]);
+          passportPrefs = passportPrefs.concat(newPrefs);
+          updatePBPassport();
+        } catch(e) {}
+      }
+      if (pbMessages.contains(thinkEl)) pbMessages.removeChild(thinkEl);
+      addPBMsg(cleanText, 'ai');
+      convHistory.push({ role: 'assistant', content: fullText });
+    }).catch(function() {
+      if (pbMessages.contains(thinkEl)) pbMessages.removeChild(thinkEl);
+      addPBMsg("Tell me how you like your room when you arrive — floor, temperature, any sensitivities?", 'ai');
+    }).finally(function() {
+      isThinking = false;
+      if (pbSend) pbSend.disabled = false;
+      if (pbInput) pbInput.focus();
+    });
+  }
+
+  function addPBMsg(text, role) {
+    if (!pbMessages) return;
+    var el = document.createElement('div');
+    el.className = 'pb-msg pb-msg--' + role;
+    var safe = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    el.innerHTML = '<div class="pb-msg-bubble">' + safe + '</div>';
+    pbMessages.appendChild(el);
+    pbMessages.scrollTop = pbMessages.scrollHeight;
+  }
+
+  function updatePBPassport() {
+    if (!pbPrefs) return;
+    if (!prefsClearedOnce && passportPrefs.length > 0) {
+      pbPrefs.innerHTML = '';
+      prefsClearedOnce = true;
+    }
+    pbPrefs.innerHTML = passportPrefs.map(function(p) {
+      return '<span class="pb-pref-tag">' + p.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</span>';
+    }).join('');
+    if (pbStatus) {
+      if (passportPrefs.length >= 6) pbStatus.textContent = 'Passport ready \u2713';
+      else if (passportPrefs.length > 0) pbStatus.textContent = passportPrefs.length + ' preferences captured';
+    }
+  }
+
+  window.sendPassportMessage = sendPassportMessage;
+
+  if (pbInput) {
+    pbInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendPassportMessage();
+      }
+    });
+  }
+
+})();
+</script>
+</body>
+</html>
